@@ -8,17 +8,17 @@
 
 #define BAUD 9600
 
-typedef struct CommText{
-	const __memx char* text;
+typedef struct CommPackage{
+	const __memx uint8_t* package;
 	uint8_t size;
 	bool dynamic;
-}CommText;
+}CommPackage;
 
 typedef struct CommNode CommNode;
 
 struct CommNode{
 	CommNode* next;
-	CommText text;
+	CommPackage package;
 };
 
 typedef struct CommQueue{
@@ -39,10 +39,10 @@ CommQueue* getUsartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
-void queue(CommQueue* queue, CommText text){
+void queue(CommQueue* queue, CommPackage package){
 	CommNode* tmpNode=malloc(sizeof(CommNode));
 	tmpNode->next=NULL;
-	tmpNode->text=text;
+	tmpNode->package=package;
 	if (queue->head==NULL){
 		queue->head=tmpNode;
 		queue->tail=tmpNode;
@@ -54,9 +54,9 @@ void queue(CommQueue* queue, CommText text){
 	}
 }
 
-CommText dequeue(CommQueue* queue){
+CommPackage dequeue(CommQueue* queue){
 	if (queue->head==NULL){
-		CommText nullText={NULL,0,false};
+		CommPackage nullText={NULL,0,false};
 		return nullText;
 	}
 	CommNode* tmpNode=queue->head;
@@ -65,15 +65,10 @@ CommText dequeue(CommQueue* queue){
 		queue->tail=NULL;
 		queue->isEmpty=true;
 	}
-	CommText retText=tmpNode->text;
+	CommPackage retPackage=tmpNode->package;
 	free(tmpNode);
-	return retText;
+	return retPackage;
 }
-
-
-
-
-
 
 void usartTransmit(uint8_t data) {
 /* Wait for empty transmit buffer */
@@ -103,39 +98,45 @@ void usartInit(uint16_t baud){
 }
 
 ISR(USART_TX_vect){
+	static bool completedTransmission=true;
+	static uint16_t marker;
 	if (!getUsartToSendQueue()->isEmpty)
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-			CommText toSend=dequeue(getUsartToSendQueue());
-			const __memx char* p=toSend.text;
-			usartTransmit((uint8_t)toSend.size);
-			while(p){
-				usartTransmit(*p);
-				p++;
+			CommPackage toSend=getUsartToSendQueue()->head->package;
+			if (!completedTransmission){
+				usartTransmit(*(toSend.package+marker));
+				marker++;
+				if (marker>toSend.size){
+					completedTransmission=true;
+					toSend=dequeue(getUsartToSendQueue());
+					if (toSend.dynamic)
+						free(toSend.package);
+				}
 			}
-			if (toSend.dynamic)
-				free(toSend.text);
-
+			else{
+				usartTransmit(toSend.size);
+				marker=0;
+			}
 		}
 }
 
 ISR(USART_RX_vect){
-	static completedTransmission=true;
-	static uint8_t marker;
+	static bool completedTransmission=true;
+	static uint16_t marker;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		CommText received;
+		CommPackage received;
 		if (!completedTransmission){
-			received=getUsartReceivedQueue()->head->text;
-			*((char*)received.text+marker)=(char)usartReceive();
+			received=getUsartReceivedQueue()->tail->package;
+			*((uint8_t*)received.package+marker)=usartReceive();
 			marker++;
-			if(marker==received.size){
+			if(marker>received.size)
 				completedTransmission=true;
-				*((char*)received.text+marker)='\0';
-			}
 		}
 		else {
 			received.size=usartReceive();
 			received.dynamic=true;
-			received.text=malloc(received.size+1);
+			received.package=malloc(received.size+1);
+			queue(getUsartReceivedQueue(),received);
 			marker=0;
 		}
 
@@ -143,9 +144,16 @@ ISR(USART_RX_vect){
 
 }
 
+void usartSend(const char* text){
+
+}
+
+char* usartGet(){
+
+}
+
 
 int main(void){
 	usartInit(BAUD);
-
 
 }
