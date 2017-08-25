@@ -1,18 +1,17 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <util/atomic.h>
-#include <stdlib.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdbool.h>
-
+#include <stdlib.h>
 #define BAUD 9600
 
 typedef struct CommPackage{
 	const __memx uint8_t* package;
 	uint8_t size;
 	bool dynamic;
-}CommPackage;
+} CommPackage;
 
 typedef struct CommNode CommNode;
 
@@ -25,16 +24,14 @@ typedef struct CommQueue{
 	CommNode* head;
 	CommNode* tail;
 	bool isEmpty;
-}CommQueue;
+} CommQueue;
 
-
-
-CommQueue* getUsartToSendQueue(void){
+CommQueue* usartToSendQueue(void){
 	static CommQueue usartToSendQueue={NULL,NULL,true};
 	return &usartToSendQueue;
 }
 
-CommQueue* getUsartReceivedQueue(void){
+CommQueue* usartReceivedQueue(void){
 	static CommQueue usartReceivedQueue={NULL,NULL,true};
 	return &usartReceivedQueue;
 }
@@ -100,15 +97,15 @@ void usartInit(uint16_t baud){
 ISR(USART_TX_vect){
 	static bool completedTransmission=true;
 	static uint16_t marker;
-	if (!getUsartToSendQueue()->isEmpty)
+	if (!usartToSendQueue()->isEmpty)
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-			CommPackage toSend=getUsartToSendQueue()->head->package;
+			CommPackage toSend=usartToSendQueue()->head->package;
 			if (!completedTransmission){
 				usartTransmit(*(toSend.package+marker));
 				marker++;
 				if (marker>toSend.size){
 					completedTransmission=true;
-					toSend=dequeue(getUsartToSendQueue());
+					toSend=dequeue(usartToSendQueue());
 					if (toSend.dynamic)
 						free(toSend.package);
 				}
@@ -126,7 +123,7 @@ ISR(USART_RX_vect){
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		CommPackage received;
 		if (!completedTransmission){
-			received=getUsartReceivedQueue()->tail->package;
+			received=usartReceivedQueue()->tail->package;
 			*((uint8_t*)received.package+marker)=usartReceive();
 			marker++;
 			if(marker>received.size)
@@ -136,7 +133,7 @@ ISR(USART_RX_vect){
 			received.size=usartReceive();
 			received.dynamic=true;
 			received.package=malloc(received.size+1);
-			queue(getUsartReceivedQueue(),received);
+			queue(usartReceivedQueue(),received);
 			marker=0;
 		}
 
@@ -144,12 +141,15 @@ ISR(USART_RX_vect){
 
 }
 
-void usartSend(const char* text){
-
+void usartSendText(const __memx char* text,bool dynamic){
+	CommPackage newPackage={(const __memx uint8_t*)text,sizeof(text),dynamic};
+	queue(usartToSendQueue(),newPackage);
+	UCSR0A|=1<<TXC0;
 }
 
-char* usartGet(){
-
+const char* usartGetText(){
+	CommPackage receivedPackage=dequeue(usartReceivedQueue());
+	return (const char*)receivedPackage.package;
 }
 
 
