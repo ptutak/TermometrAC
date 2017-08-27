@@ -24,19 +24,22 @@ typedef struct CommQueue{
 	CommNode* head;
 	CommNode* tail;
 	bool isEmpty;
+    uint16_t counter;
 } CommQueue;
 
 CommQueue* usartToSendQueue(void){
-	static CommQueue usartToSendQueue={NULL,NULL,true};
+	static CommQueue usartToSendQueue={NULL,NULL,true,0};
 	return &usartToSendQueue;
 }
 
 CommQueue* usartReceivedQueue(void){
-	static CommQueue usartReceivedQueue={NULL,NULL,true};
+	static CommQueue usartReceivedQueue={NULL,NULL,true,0};
 	return &usartReceivedQueue;
 }
 
 void queue(CommQueue* queue, CommPackage package){
+    if (queue==NULL)
+        return;
 	CommNode* tmpNode=malloc(sizeof(CommNode));
 	tmpNode->next=NULL;
 	tmpNode->package=package;
@@ -49,21 +52,24 @@ void queue(CommQueue* queue, CommPackage package){
 		queue->tail->next=tmpNode;
 		queue->tail=tmpNode;
 	}
+    queue->counter++;
 }
 
 CommPackage dequeue(CommQueue* queue){
-	if (queue->head==NULL){
+    if (queue==NULL || queue->head==NULL){
 		CommPackage nullText={NULL,0,false};
 		return nullText;
 	}
 	CommNode* tmpNode=queue->head;
 	queue->head=queue->head->next;
+    
 	if (queue->head==NULL){
 		queue->tail=NULL;
 		queue->isEmpty=true;
 	}
 	CommPackage retPackage=tmpNode->package;
 	free(tmpNode);
+    queue->counter--;
 	return retPackage;
 }
 
@@ -99,22 +105,23 @@ ISR(USART_TX_vect){
 	if (!usartToSendQueue()->isEmpty){
 	    CommPackage toSend=usartToSendQueue()->head->package;
 		if (!completedTransmission){
-            
-		    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-    		usartTransmit(*(toSend.package+marker));
             marker++;
             if (marker==toSend.size){
-				completedTransmission=true;
-				toSend=dequeue(usartToSendQueue());
-				if (toSend.dynamic)
-					free(toSend.package);
-			}
-            }            
+                 completedTransmission=true;
+                 toSend=dequeue(usartToSendQueue());
+                 if (toSend.dynamic)
+                    free(toSend.package);
+             }
+             else
+		       usartTransmit(*(toSend.package+marker));            
 		}
 		else{
             completedTransmission=false;
     		marker=0;
-			usartTransmit(toSend.size);
+            if (toSend.size>0)
+                usartTransmit(*toSend.package);
+            else
+                completedTransmission=true;
 		}
     }
 }
@@ -126,8 +133,8 @@ ISR(USART_RX_vect){
     received.dynamic=true;
 	if (!completedTransmission){
     	*((uint8_t*)received.package+marker)=usartReceive();
-		marker++;
-		if(marker==received.size){
+        marker++;
+		if(marker>=received.size){
 			completedTransmission=true;
             queue(usartReceivedQueue(),received);
         }
@@ -136,16 +143,13 @@ ISR(USART_RX_vect){
         marker=0;
         completedTransmission=false;
         received.size=usartReceive();
-        received.package=malloc(received.size);
+        if (received.size==0)
+            completedTransmission=true;
+        else
+            received.package=malloc(received.size);
 	}
 }
-/*/
-ISR(USART_RX_vect){
-    uint8_t data=usartReceive();
-    usartTransmit(data);
 
-}
-//*/
 void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
 	CommPackage newPackage={(const __memx uint8_t*)text,size,dynamic};
 	queue(usartToSendQueue(),newPackage);
@@ -154,7 +158,6 @@ void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
 
 const char* usartGetText(){
 	CommPackage receivedPackage=dequeue(usartReceivedQueue());
-    usartTransmit((uint8_t)&receivedPackage);
 	return (const char*)receivedPackage.package;
     PORTB^=1<<PB5;
 }
@@ -168,23 +171,16 @@ int main(void){
     const char* received;
     uint8_t size=0;
     usartSendText(text,sizeof("Czesc\n"),false);
-
     while(1){
- 
- //       _delay_ms(1000);
- //       usartTransmit(255);
-        if(usartReceivedQueue()->isEmpty){
-            
-        }
+        _delay_us(1);
         if(!usartReceivedQueue()->isEmpty){
             received=usartGetText();
             while(*(received+size))
                 size++;
             size++;
-            usartSendText(usartGetText(),size,true);
-            size=0;
-            
-           }
+            usartSendText(received,size,true);
+            size=0; 
+        }
     }
 
 }
