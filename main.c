@@ -122,20 +122,21 @@ ISR(USART_TX_vect){
 ISR(USART_RX_vect){
 	static bool completedTransmission=true;
 	static uint16_t marker;
-	CommPackage received;
+	static CommPackage received;
+    received.dynamic=true;
 	if (!completedTransmission){
-			received=usartReceivedQueue()->tail->package;
-			*((uint8_t*)received.package+marker)=usartReceive();
-			marker++;
-			if(marker==received.size)
-				completedTransmission=true;
+    	*((uint8_t*)received.package+marker)=usartReceive();
+		marker++;
+		if(marker==received.size){
+			completedTransmission=true;
+            queue(usartReceivedQueue(),received);
+        }
 	}
 	else {
-			received.size=usartReceive();
-			received.dynamic=true;
-			received.package=malloc(received.size);
-			queue(usartReceivedQueue(),received);
-			marker=0;
+        marker=0;
+        completedTransmission=false;
+        received.size=usartReceive();
+        received.package=malloc(received.size);
 	}
 }
 /*/
@@ -153,6 +154,7 @@ void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
 
 const char* usartGetText(){
 	CommPackage receivedPackage=dequeue(usartReceivedQueue());
+    usartTransmit((uint8_t)&receivedPackage);
 	return (const char*)receivedPackage.package;
     PORTB^=1<<PB5;
 }
@@ -165,12 +167,16 @@ int main(void){
     const char __flash * text=PSTR("Czesc\n");
     const char* received;
     uint8_t size=0;
+    usartSendText(text,sizeof("Czesc\n"),false);
 
     while(1){
-        usartSendText(text,sizeof("Czesc\n"),false);
-
-        _delay_ms(1000);
-/*        if(!usartReceivedQueue()->isEmpty){
+ 
+ //       _delay_ms(1000);
+ //       usartTransmit(255);
+        if(usartReceivedQueue()->isEmpty){
+            
+        }
+        if(!usartReceivedQueue()->isEmpty){
             received=usartGetText();
             while(*(received+size))
                 size++;
@@ -179,7 +185,6 @@ int main(void){
             size=0;
             
            }
-           */
     }
 
 }
