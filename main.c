@@ -21,10 +21,10 @@ struct CommNode{
 };
 
 typedef struct CommQueue{
-	CommNode* head;
-	CommNode* tail;
-	bool isEmpty;
-    uint16_t counter;
+	volatile CommNode* head;
+	volatile CommNode* tail;
+	volatile bool isEmpty;
+    volatile uint16_t counter;
 } CommQueue;
 
 CommQueue* usartToSendQueue(void){
@@ -43,16 +43,18 @@ void queue(CommQueue* queue, CommPackage package){
 	CommNode* tmpNode=malloc(sizeof(CommNode));
 	tmpNode->next=NULL;
 	tmpNode->package=package;
-	if (queue->head==NULL){
-		queue->head=tmpNode;
-		queue->tail=tmpNode;
-		queue->isEmpty=false;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (queue->head==NULL){
+			queue->head=tmpNode;
+			queue->tail=tmpNode;
+			queue->isEmpty=false;
+		}
+		else{
+			queue->tail->next=tmpNode;
+			queue->tail=tmpNode;
+		}
+		queue->counter++;
 	}
-	else{
-		queue->tail->next=tmpNode;
-		queue->tail=tmpNode;
-	}
-    queue->counter++;
 }
 
 CommPackage dequeue(CommQueue* queue){
@@ -60,17 +62,19 @@ CommPackage dequeue(CommQueue* queue){
 		CommPackage nullText={NULL,0,false};
 		return nullText;
 	}
-	CommNode* tmpNode=queue->head;
-	queue->head=queue->head->next;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+    	CommNode* tmpNode=queue->head;
+    	queue->head=queue->head->next;
     
-	if (queue->head==NULL){
-		queue->tail=NULL;
-		queue->isEmpty=true;
-	}
-	CommPackage retPackage=tmpNode->package;
-	free(tmpNode);
-    queue->counter--;
-	return retPackage;
+    	if (queue->head==NULL){
+    		queue->tail=NULL;
+    		queue->isEmpty=true;
+    	}
+    	CommPackage retPackage=tmpNode->package;
+    	free(tmpNode);
+    	queue->counter--;
+    	return retPackage;
+    }
 }
 
 void usartTransmit(uint8_t data) {
@@ -172,7 +176,7 @@ int main(void){
     uint8_t size=0;
     usartSendText(text,sizeof("Czesc\n"),false);
     while(1){
-        _delay_us(1);
+//    	_delay_us(1);
         if(!usartReceivedQueue()->isEmpty){
             received=usartGetText();
             while(*(received+size))
