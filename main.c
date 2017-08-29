@@ -39,6 +39,21 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
+typedef struct TwiStatus{
+	volatile bool start : 1;
+	volatile bool repeatStart : 1;
+	volatile bool slaw : 1;
+	volatile bool slar : 1;
+	volatile bool data : 1;
+	volatile bool stop : 1;
+	bool : 0;
+} TwiStatus;
+
+TwiStatus* twiStatus(void){
+	static TwiStatus status={0,0,0,0,0,0};
+	return &status;
+}
+
 void queue(CommQueue* queue, CommPackage package){
     if (queue==NULL)
         return;
@@ -195,8 +210,16 @@ void i2cInit(uint32_t freq){
 	TWSR&=0;
 	TWSR|=prescaler;
 	TWBR=twbr;
+	twiStatus()->enabled=true;
 }
 
+void i2cStart(){
+
+}
+
+void i2cAddress(uint8_t address){
+
+}
 
 int main(void){
 	usartInit(BAUD);
