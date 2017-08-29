@@ -1,10 +1,12 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <util/atomic.h>
+#include <util/twi.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
 
 
 #define BAUD 9600
