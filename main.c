@@ -5,6 +5,8 @@
 #include <avr/pgmspace.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+
 #define BAUD 9600
 
 typedef struct CommPackage{
@@ -110,7 +112,7 @@ ISR(USART_TX_vect){
 	    CommPackage toSend=usartToSendQueue()->head->package;
 		if (!completedTransmission){
             marker++;
-            if (marker==toSend.size){
+            if (marker>=toSend.size){
                  completedTransmission=true;
                  toSend=dequeue(usartToSendQueue());
                  if (toSend.dynamic)
@@ -163,7 +165,19 @@ void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
 const char* usartGetText(){
 	CommPackage receivedPackage=dequeue(usartReceivedQueue());
 	return (const char*)receivedPackage.package;
-    PORTB^=1<<PB5;
+}
+
+void i2cInit(uint32_t freq){
+	TWCR=1<<TWEN|1<<TWEA;
+	uint32_t twbr=(F_CPU/freq - 16)/2;
+	uint8_t prescaler=0;
+	while (twbr>255){
+		twbr/=4;
+		prescaler++;
+	}
+	TWSR&=0;
+	TWSR|=prescaler;
+	TWBR=twbr;
 }
 
 
@@ -174,14 +188,12 @@ int main(void){
     const char __flash * text=PSTR("Czesc\n");
     const char* received;
     uint8_t size=0;
-    usartSendText(text,sizeof("Czesc\n"),false);
+    usartSendText(text,sizeof("Czesc\n")-1,false);
     while(1){
-//    	_delay_us(1);
         if(!usartReceivedQueue()->isEmpty){
             received=usartGetText();
             while(*(received+size))
                 size++;
-            size++;
             usartSendText(received,size,true);
             size=0; 
         }
