@@ -18,13 +18,13 @@ typedef struct CommPackage{
 typedef struct CommNode CommNode;
 
 struct CommNode{
-	CommNode* next;
+	CommNode* volatile next;
 	CommPackage package;
 };
 
 typedef struct CommQueue{
-	volatile CommNode* head;
-	volatile CommNode* tail;
+	CommNode* volatile head;
+	CommNode* volatile tail;
 	volatile bool isEmpty;
     volatile uint16_t counter;
 } CommQueue;
@@ -60,10 +60,8 @@ void queue(CommQueue* queue, CommPackage package){
 }
 
 CommPackage dequeue(CommQueue* queue){
-    if (queue==NULL || queue->head==NULL){
-		CommPackage nullText={NULL,0,false};
-		return nullText;
-	}
+    if (queue==NULL || queue->head==NULL)
+		return (CommPackage){NULL,0,false};
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     	CommNode* tmpNode=queue->head;
     	queue->head=queue->head->next;
@@ -77,6 +75,7 @@ CommPackage dequeue(CommQueue* queue){
     	queue->counter--;
     	return retPackage;
     }
+    return (CommPackage){NULL,0,false};
 }
 
 void usartTransmit(uint8_t data) {
@@ -112,7 +111,7 @@ ISR(USART_TX_vect){
 	    CommPackage toSend=usartToSendQueue()->head->package;
 		if (!completedTransmission){
             marker++;
-            if (marker>=toSend.size){
+            if (marker==toSend.size){
                  completedTransmission=true;
                  toSend=dequeue(usartToSendQueue());
                  if (toSend.dynamic)
@@ -156,19 +155,37 @@ ISR(USART_RX_vect){
 	}
 }
 
-void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
-	CommPackage newPackage={(const __memx uint8_t*)text,size,dynamic};
-	queue(usartToSendQueue(),newPackage);
+inline void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
+	queue(usartToSendQueue(),(CommPackage){(const __memx uint8_t*)text,size-1,dynamic});
 	USART_TX_vect();
 }
 
-const char* usartGetText(){
-	CommPackage receivedPackage=dequeue(usartReceivedQueue());
-	return (const char*)receivedPackage.package;
+inline const char* usartGetText(){
+	return (const char*)dequeue(usartReceivedQueue()).package;
+}
+
+inline void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic){
+	queue(usartToSendQueue(),(CommPackage){data,size,dynamic});
+	USART_TX_vect();
+}
+inline CommPackage usartGetData(void){
+	return dequeue(usartReceivedQueue());
+}
+
+ISR(TWI_vect){
+	uint8_t twiStatus=TWSR>>3;
+	twiStatus<<=3;
+	switch(twiStatus){
+	default:{
+		uint8_t* twiStaTemp=malloc(1);
+		*twiStaTemp=twiStatus;
+		usartSendData(twiStaTemp,1,true);
+	}
+	}
 }
 
 void i2cInit(uint32_t freq){
-	TWCR=1<<TWEN|1<<TWEA;
+	TWCR=1<<TWEN|1<<TWEA|1<<TWIE;
 	uint32_t twbr=(F_CPU/freq - 16)/2;
 	uint8_t prescaler=0;
 	while (twbr>255){
@@ -188,12 +205,13 @@ int main(void){
     const char __flash * text=PSTR("Czesc\n");
     const char* received;
     uint8_t size=0;
-    usartSendText(text,sizeof("Czesc\n")-1,false);
+    usartSendText(text,sizeof("Czesc\n"),false);
     while(1){
         if(!usartReceivedQueue()->isEmpty){
             received=usartGetText();
             while(*(received+size))
                 size++;
+            size++;
             usartSendText(received,size,true);
             size=0; 
         }

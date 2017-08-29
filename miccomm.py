@@ -11,7 +11,10 @@ def writeMicText(myMicSerial,text):
     myMicSerial.write([len(text)])
     myMicSerial.write(bytes(text,encoding='utf-8'))
 
-class mySerial(serial.Serial):
+class MySerial(serial.Serial):
     def writeText(self,text):
-        self.write([len(text)])
-        self.write(bytes(text,encoding='utf-8'))
+        self.write([len(text)+1])
+        self.write(bytes(text+'\0',encoding='utf-8'))
+    def printText(self,text):
+        self.write([len(text)+2])
+        self.write(bytes(text+'\n\0',encoding='utf-8'))
