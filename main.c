@@ -53,7 +53,7 @@ typedef union{
 	TwiPackage tPackage;
 }Package;
 
-const Package NULL_PACKAGE={{NULL,0,false},NULL_TWI_CONTROL_STATUS};
+const Package NULL_PACKAGE={.tPackage={NULL,0,false,NULL_TWI_CONTROL_STATUS}};
 
 struct CommNode{
 	CommNode* volatile next;
@@ -125,9 +125,9 @@ Package dequeue(CommQueue* queue,char type){
     	switch(type){
     	case 'u':
     	case 't':
-    		return (Package){NULL,0,false,NULL_TWI_CONTROL_STATUS};
+    		return NULL_PACKAGE;
     	default:
-    		return (Package){NULL,0,false,NULL_TWI_CONTROL_STATUS};
+    		return NULL_PACKAGE;
     	}
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     	CommNode* tmpNode=queue->head;
