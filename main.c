@@ -11,18 +11,59 @@
 
 #define BAUD 9600
 
-typedef struct CommPackage{
-	const __memx uint8_t* package;
+
+
+typedef struct{
+	const __memx uint8_t* data;
 	uint8_t size;
 	bool dynamic;
-} CommPackage;
+} UsartPackage;
+
+
+typedef struct{
+	volatile bool start : 1;
+	volatile bool slaw : 1;
+	volatile bool slar : 1;
+	volatile bool data : 1;
+	volatile bool stop : 1;
+	volatile bool error : 1;
+	bool : 0;
+	volatile uint8_t address;
+	volatile char mode;
+	volatile uint8_t status;
+} TwiControlStatus;
+
+const TwiControlStatus NULL_TWI_CONTROL_STATUS={0,0,0,0,0,0,0,'\0',0};
+
+const TwiControlStatus RESET_STATUS_TWI={0,0,0,0,0,0,~0,~0,~0};
+
+typedef struct{
+	const __memx uint8_t* data;
+	uint8_t size;
+	bool dynamic;
+	TwiControlStatus twiControlStatus;
+} TwiPackage;
+
+
 
 typedef struct CommNode CommNode;
 
+typedef union{
+	UsartPackage uPackage;
+	TwiPackage tPackage;
+}Package;
+
+const Package NULL_PACKAGE={{NULL,0,false},NULL_TWI_CONTROL_STATUS};
+
 struct CommNode{
 	CommNode* volatile next;
-	CommPackage package;
+	union{
+			UsartPackage uPackage;
+			TwiPackage tPackage;
+	};
 };
+
+
 
 typedef struct CommQueue{
 	CommNode* volatile head;
@@ -30,6 +71,7 @@ typedef struct CommQueue{
 	volatile bool isEmpty;
     volatile uint16_t counter;
 } CommQueue;
+
 
 CommQueue* usartToSendQueue(void){
 	static CommQueue usartToSendQueue={NULL,NULL,true,0};
@@ -41,27 +83,29 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
-typedef struct TwiStatus{
-	volatile bool start : 1;
-	volatile bool repeatStart : 1;
-	volatile bool slaw : 1;
-	volatile bool slar : 1;
-	volatile bool data : 1;
-	volatile bool stop : 1;
-	bool : 0;
-} TwiStatus;
-
-TwiStatus* twiStatus(void){
-	static TwiStatus status={0,0,0,0,0,0};
-	return &status;
+CommQueue* twiToSendQueue(void){
+	static CommQueue twiToSendQueue={NULL,NULL,true,0};
+	return &twiToSendQueue;
 }
 
-void queue(CommQueue* queue, CommPackage package){
+CommQueue* twiReceivedQueue(void){
+	static CommQueue twiReceivedQueue={NULL,NULL,true,0};
+	return &twiReceivedQueue;
+}
+
+void queue(CommQueue* queue, void* package, char type){
     if (queue==NULL)
         return;
 	CommNode* tmpNode=malloc(sizeof(CommNode));
 	tmpNode->next=NULL;
-	tmpNode->package=package;
+	switch(type){
+	case 'u':
+		tmpNode->uPackage=*((UsartPackage*)package);
+		break;
+	case 't':
+		tmpNode->tPackage=*((TwiPackage*)package);
+		break;
+	}
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		if (queue->head==NULL){
 			queue->head=tmpNode;
@@ -76,9 +120,15 @@ void queue(CommQueue* queue, CommPackage package){
 	}
 }
 
-CommPackage dequeue(CommQueue* queue){
+Package dequeue(CommQueue* queue,char type){
     if (queue==NULL || queue->head==NULL)
-		return (CommPackage){NULL,0,false};
+    	switch(type){
+    	case 'u':
+    	case 't':
+    		return (Package){NULL,0,false,NULL_TWI_CONTROL_STATUS};
+    	default:
+    		return (Package){NULL,0,false,NULL_TWI_CONTROL_STATUS};
+    	}
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     	CommNode* tmpNode=queue->head;
     	queue->head=queue->head->next;
@@ -87,12 +137,20 @@ CommPackage dequeue(CommQueue* queue){
     		queue->tail=NULL;
     		queue->isEmpty=true;
     	}
-    	CommPackage retPackage=tmpNode->package;
+    	Package retPackage;
+    	switch(type){
+    	case 'u':
+    		retPackage.uPackage=tmpNode->uPackage;
+    		break;
+    	case 't':
+    		retPackage.tPackage=tmpNode->tPackage;
+    		break;
+    	}
     	free(tmpNode);
     	queue->counter--;
     	return retPackage;
     }
-    return (CommPackage){NULL,0,false};
+    return (Package){NULL,0,false,NULL_TWI_CONTROL_STATUS};
 }
 
 void usartTransmit(uint8_t data) {
@@ -125,23 +183,23 @@ ISR(USART_TX_vect){
 	static bool completedTransmission=true;
 	static uint16_t marker;
 	if (!usartToSendQueue()->isEmpty){
-	    CommPackage toSend=usartToSendQueue()->head->package;
+	    UsartPackage toSend=usartToSendQueue()->head->uPackage;
 		if (!completedTransmission){
             marker++;
             if (marker==toSend.size){
                  completedTransmission=true;
-                 toSend=dequeue(usartToSendQueue());
+                 toSend=(UsartPackage)dequeue(usartToSendQueue(),'u');
                  if (toSend.dynamic)
-                    free(toSend.package);
+                    free((uint8_t*)toSend.data);
              }
              else
-		       usartTransmit(*(toSend.package+marker));            
+		       usartTransmit(*(toSend.data+marker));            
 		}
 		else{
             completedTransmission=false;
     		marker=0;
             if (toSend.size>0)
-                usartTransmit(*toSend.package);
+                usartTransmit(*toSend.data);
             else
                 completedTransmission=true;
 		}
@@ -151,14 +209,14 @@ ISR(USART_TX_vect){
 ISR(USART_RX_vect){
 	static bool completedTransmission=true;
 	static uint16_t marker;
-	static CommPackage received;
+	static UsartPackage received;
     received.dynamic=true;
 	if (!completedTransmission){
-    	*((uint8_t*)received.package+marker)=usartReceive();
+    	*((uint8_t*)received.data+marker)=usartReceive();
         marker++;
 		if(marker>=received.size){
 			completedTransmission=true;
-            queue(usartReceivedQueue(),received);
+            queue(usartReceivedQueue(),received,'u');
         }
 	}
 	else {
@@ -168,40 +226,83 @@ ISR(USART_RX_vect){
         if (received.size==0)
             completedTransmission=true;
         else
-            received.package=malloc(received.size);
+            received.data=malloc(received.size);
 	}
 }
 
 inline void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
-	queue(usartToSendQueue(),(CommPackage){(const __memx uint8_t*)text,size-1,dynamic});
+	queue(usartToSendQueue(),(UsartPackage){(const __memx uint8_t*)text,size-1,dynamic},'u');
 	USART_TX_vect();
 }
 
 inline const char* usartGetText(){
-	return (const char*)dequeue(usartReceivedQueue()).package;
+	return (const char*)((UsartPackage)dequeue(usartReceivedQueue(),'u')).data;
 }
 
 inline void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic){
-	queue(usartToSendQueue(),(CommPackage){data,size,dynamic});
+	queue(usartToSendQueue(),(UsartPackage){data,size,dynamic},'u');
 	USART_TX_vect();
 }
-inline CommPackage usartGetData(void){
+inline UsartPackage usartGetData(void){
 	return dequeue(usartReceivedQueue());
 }
 
+inline void resetTwiStatus(){
+	twiControlStatus()->data=false;
+	twiControlStatus()->error=false;
+	twiControlStatus()->slar=false;
+	twiControlStatus()->slaw=false;
+	twiControlStatus()->start=false;
+	twiControlStatus()->stop=false;
+}
+
 ISR(TWI_vect){
-	uint8_t twiStatus=TWSR>>3;
-	twiStatus<<=3;
-	switch(twiStatus){
-	default:{
+	uint8_t twiStatusReg=TWSR & (0b11111000);
+	if (twiControlStatus()->start)
+		switch(twiStatusReg){
+		case 0x08:
+		case 0x10:
+		default:
+			resetTwiStatus();
+			twiControlStatus()->error=true;
+		}
+	else if (twiControlStatus()->slaw)
+		switch(twiStatusReg){
+		case 0x18:
+		case 0x20:
+		default:
+			resetTwiStatus();
+			twiControlStatus()->error=true;
+		}
+	else if (twiControlStatus()->data)
+		switch(twiStatusReg){
+		case 0x28:
+		case 0x30:
+		case 0x38:
+		default:
+			resetTwiStatus();
+			twiControlStatus()->error=true;
+		}
+	else if (twiControlStatus()->slar)
+		switch (twiStatusReg){
+		case 0x38:
+		case 0x40:
+		case 0x48:
+		case 0x50:
+		case 0x58:
+		default:
+			resetTwiStatus();
+			twiControlStatus()->error=true;
+
+		}
+	/*
 		uint8_t* twiStaTemp=malloc(1);
 		*twiStaTemp=twiStatus;
 		usartSendData(twiStaTemp,1,true);
-	}
-	}
+	*/
 }
 
-void i2cInit(uint32_t freq){
+void twiInit(uint32_t freq){
 	TWCR=1<<TWEN|1<<TWEA|1<<TWIE;
 	uint32_t twbr=(F_CPU/freq - 16)/2;
 	uint8_t prescaler=0;
@@ -212,15 +313,40 @@ void i2cInit(uint32_t freq){
 	TWSR&=0;
 	TWSR|=prescaler;
 	TWBR=twbr;
-	twiStatus()->enabled=true;
 }
 
-void i2cStart(){
-
+inline void twiStart(){
+	TWCR=1<<TWEN|1<<TWEA|1<<TWIE|1<<TWSTA;
+	resetTwiStatus();
+	twiControlStatus()->start=true;
 }
 
-void i2cAddress(uint8_t address){
+inline void twiAddress(uint8_t address, char mode){
+	switch (mode){
+	case 'w':
+		address&= ~(1);
+		resetTwiStatus();
+		twiControlStatus()->slaw=true;
+		break;
+	case 'r':
+		address|=1;
+		resetTwiStatus();
+		twiControlStatus()->slar=true;
+		break;
+	}
+	TWDR=address;
+	TWCR=1<<TWEN|1<<TWEA|1<<TWIE;
+}
 
+inline void twiData(uint8_t data){
+	TWDR=data;
+	TWCR=1<<TWEN|1<<TWEA|1<<TWIE;
+	resetTwiStatus();
+	twiControlStatus()->data=true;
+}
+
+void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address){
+	queue(twiToSendQueue(),(void*)((UsartPackage){data,size,dynamic}),'t');
 }
 
 int main(void){
