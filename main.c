@@ -336,6 +336,7 @@ ISR(TWI_vect){
 		case 0x38:
 		default:
 			resetTwiControlStatus(&order->twiControlStatus);
+			order->twiControlStatus.status=twiStatusReg;
 			order->twiControlStatus.error=true;
 		}
 	else if (order->twiControlStatus.slar)
@@ -347,6 +348,7 @@ ISR(TWI_vect){
 		case 0x58:
 		default:
 			resetTwiControlStatus(&order->twiControlStatus);
+			order->twiControlStatus.status=twiStatusReg;
 			order->twiControlStatus.error=true;
 
 		}
