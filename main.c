@@ -101,21 +101,12 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
-CommQueue* twiCommQueue(void){
-	static CommQueue twiCommQueue={NULL,NULL,true,0};
-	return &twiCommQueue;
+CommQueue* twiMasterQueue(void){
+	static CommQueue twiMasterQueue={NULL,NULL,true,0};
+	return &twiMasterQueue;
 }
 
 
-CommQueue* twiToSendQueue(void){
-	static CommQueue twiToSendQueue={NULL,NULL,true,0};
-	return &twiToSendQueue;
-}
-
-CommQueue* twiReceivedQueue(void){
-	static CommQueue twiReceivedQueue={NULL,NULL,true,0};
-	return &twiReceivedQueue;
-}
 
 void queue(CommQueue* queue, void* package, char type){
     if (queue==NULL)
@@ -273,9 +264,11 @@ inline void twiStart(){
 inline void twiAddress(uint8_t address, char mode){
 	switch (mode){
 	case 'w':
+	case 'W':
 		address&= ~(1);
 		break;
 	case 'r':
+	case 'R':
 		address|=1;
 		break;
 	}
@@ -296,19 +289,36 @@ inline void twiStop(){
 ISR(TWI_vect){
 	uint8_t twiStatusReg=TWSR & (0b11111000);
 	static bool orderDone=true;
-	static TwiPackage* order;
-	if (twiCommQueue()->isEmpty){
+	static TwiPackage* order=NULL;
+	if (twiMasterQueue()->isEmpty){
 		return;
-	} else if (orderDone){
-		order=&(twiCommQueue()->head->tPackage);
+	}
+	if (orderDone){
+		order=&(twiMasterQueue()->head->tPackage);
 		orderDone=false;
+		order->twiControlStatus.start=true;
+		twiStart();
+		return;
 	}
 	if (order->twiControlStatus.start)
 		switch(twiStatusReg){
 		case 0x08:
 		case 0x10:
+			order->twiControlStatus.start=false;
+			switch(order->twiControlStatus.mode){
+			case 'W':
+				order->twiControlStatus.slaw=true;
+				twiAddress(order->twiControlStatus.address,'W');
+				break;
+			case 'R':
+				order->twiControlStatus.slar=true;
+				twiAddress(order->twiControlStatus.address,'R');
+				break;
+			}
+			break;
 		default:
 			resetTwiControlStatus(&order->twiControlStatus);
+			order->twiControlStatus.status=twiStatusReg;
 			order->twiControlStatus.error=true;
 		}
 	else if (order->twiControlStatus.slaw)
@@ -353,7 +363,7 @@ ISR(TWI_vect){
 
 
 void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address){
-	queue(twiCommQueue(),(void*)&((TwiPackage){data,size,dynamic,{0,0,0,0,0,0,address,'W',0}}),'t');
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,dynamic,{0,0,0,0,0,0,address,'W',0}}),'t');
 }
 
 
