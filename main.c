@@ -13,41 +13,39 @@
 
 
 
-typedef struct{
-	const __memx uint8_t* data;
+typedef struct{	const __memx uint8_t* data;
 	uint8_t size;
 	bool dynamic;
 } UsartPackage;
 
 
 
-
+typedef enum {
+	TWI_NULL=0,
+	TWI_START,
+	TWI_REP_START,
+	TWI_SLAW,
+	TWI_SLAR,
+	TWI_DATA,
+	TWI_STOP,
+	TWI_ERROR
+}TwiControl;
 
 typedef struct{
-	volatile bool start : 1;
-	volatile bool slaw : 1;
-	volatile bool slar : 1;
-	volatile bool data : 1;
-	volatile bool stop : 1;
-	volatile bool error : 1;
-	bool : 0;
+	volatile TwiControl control;
 	volatile uint8_t address;
 	volatile char mode;
 	volatile uint8_t status;
 } TwiControlStatus;
 
-const TwiControlStatus NULL_TWI_CONTROL_STATUS={0,0,0,0,0,0,0,'\0',0};
+const TwiControlStatus NULL_TWI_CONTROL_STATUS={TWI_NULL,0,'\0',0};
 
-const TwiControlStatus TWI_MASTER_TO_SEND_STATUS={0,0,0,0,0,0,0,'W',0};
+const TwiControlStatus TWI_MASTER_TO_SEND_STATUS={TWI_NULL,0,'W',0};
 
-const TwiControlStatus TWI_MASTER_RECEIVE_STATUS={0,0,0,0,0,0,0,'R',0};
+const TwiControlStatus TWI_MASTER_RECEIVE_STATUS={TWI_NULL,0,'R',0};
 
 void resetTwiControlStatus(TwiControlStatus* status){
-	status->error=false;
-	status->slar=false;
-	status->slaw=false;
-	status->start=false;
-	status->stop=false;
+	status->control=TWI_NULL;
 }
 
 typedef struct{
@@ -66,7 +64,7 @@ typedef union{
 	TwiPackage tPackage;
 }Package;
 
-const Package NULL_PACKAGE={.tPackage={NULL,0,false,{0,0,0,0,0,0,0,'\0',0}}};
+const Package NULL_PACKAGE={.tPackage={NULL,0,false,{TWI_NULL,0,'\0',0}}};
 
 
 
@@ -296,22 +294,22 @@ ISR(TWI_vect){
 	if (orderDone){
 		order=&(twiMasterQueue()->head->tPackage);
 		orderDone=false;
-		order->twiControlStatus.start=true;
+		order->twiControlStatus.control=TWI_START;
 		twiStart();
 		return;
 	}
-	if (order->twiControlStatus.start)
+	switch(order->twiControlStatus.control){
+	case TWI_START:
 		switch(twiStatusReg){
 		case 0x08:
 		case 0x10:
-			order->twiControlStatus.start=false;
 			switch(order->twiControlStatus.mode){
 			case 'W':
-				order->twiControlStatus.slaw=true;
+				order->twiControlStatus.control=TWI_SLAW;
 				twiAddress(order->twiControlStatus.address,'W');
 				break;
 			case 'R':
-				order->twiControlStatus.slar=true;
+				order->twiControlStatus.control=TWI_SLAR;
 				twiAddress(order->twiControlStatus.address,'R');
 				break;
 			}
@@ -319,27 +317,19 @@ ISR(TWI_vect){
 		default:
 			resetTwiControlStatus(&order->twiControlStatus);
 			order->twiControlStatus.status=twiStatusReg;
-			order->twiControlStatus.error=true;
+			order->twiControlStatus.control=TWI_ERROR;
 		}
-	else if (order->twiControlStatus.slaw)
+		break;
+	case TWI_SLAW:
 		switch(twiStatusReg){
 		case 0x18:
 		case 0x20:
 		default:
 			resetTwiControlStatus(&order->twiControlStatus);
-			order->twiControlStatus.error=true;
+			order->twiControlStatus.control=TWI_ERROR;
 		}
-	else if (order->twiControlStatus.data)
-		switch(twiStatusReg){
-		case 0x28:
-		case 0x30:
-		case 0x38:
-		default:
-			resetTwiControlStatus(&order->twiControlStatus);
-			order->twiControlStatus.status=twiStatusReg;
-			order->twiControlStatus.error=true;
-		}
-	else if (order->twiControlStatus.slar)
+		break;
+	case TWI_SLAR:
 		switch (twiStatusReg){
 		case 0x38:
 		case 0x40:
@@ -349,23 +339,32 @@ ISR(TWI_vect){
 		default:
 			resetTwiControlStatus(&order->twiControlStatus);
 			order->twiControlStatus.status=twiStatusReg;
-			order->twiControlStatus.error=true;
-
+			order->twiControlStatus.control=TWI_ERROR;
 		}
-	else {
-
-	}
-	/*
+		break;
+	case TWI_DATA:
+		switch(twiStatusReg){
+		case 0x28:
+		case 0x30:
+		case 0x38:
+		default:
+			resetTwiControlStatus(&order->twiControlStatus);
+			order->twiControlStatus.status=twiStatusReg;
+			order->twiControlStatus.control=TWI_ERROR;
+		}
+		break;
+	default:{
 		uint8_t* twiStaTemp=malloc(1);
-		*twiStaTemp=twiStatus;
+		*twiStaTemp=twiStatusReg;
 		usartSendData(twiStaTemp,1,true);
-	*/
+	}
+	}
 }
 
 
 
 void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,dynamic,{0,0,0,0,0,0,address,'W',0}}),'t');
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,dynamic,{TWI_NULL,address,'W',0}}),'t');
 }
 
 
