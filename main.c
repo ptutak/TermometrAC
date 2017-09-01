@@ -6,164 +6,17 @@
 #include <avr/pgmspace.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "my_twi.h"
+#include "my_usart.h"
 
 
-
-#define BAUD 9600
-
-
-
-typedef struct{	const __memx uint8_t* data;
-	uint8_t size;
-	bool dynamic;
-} UsartPackage;
-
-
-
-typedef enum {
-	TWI_NULL=0,
-	TWI_START,
-	TWI_REP_START,
-	TWI_SLAW,
-	TWI_SLAR,
-	TWI_DATA,
-	TWI_STOP,
-	TWI_ERROR
-}TwiControl;
-
-typedef struct{
-	volatile TwiControl control;
-	volatile uint8_t address;
-	volatile char mode;
-	volatile uint8_t status;
-} TwiControlStatus;
-
-const TwiControlStatus NULL_TWI_CONTROL_STATUS={TWI_NULL,0,'\0',0};
-
-const TwiControlStatus TWI_MASTER_TO_SEND_STATUS={TWI_NULL,0,'W',0};
-
-const TwiControlStatus TWI_MASTER_RECEIVE_STATUS={TWI_NULL,0,'R',0};
-
-void resetTwiControlStatus(TwiControlStatus* status){
-	status->control=TWI_NULL;
-}
-
-typedef struct{
-	const __memx uint8_t* data;
-	uint8_t size;
-	bool dynamic;
-	TwiControlStatus twiControlStatus;
-} TwiPackage;
+static const uint16_t BAUD=9600;
 
 
 
 
 
-typedef union{
-	UsartPackage uPackage;
-	TwiPackage tPackage;
-}Package;
 
-const Package NULL_PACKAGE={.tPackage={NULL,0,false,{TWI_NULL,0,'\0',0}}};
-
-
-
-
-typedef struct CommNode CommNode;
-
-struct CommNode{
-	CommNode* volatile next;
-	union{
-			UsartPackage uPackage;
-			TwiPackage tPackage;
-	};
-};
-
-
-
-typedef struct CommQueue{
-	CommNode* volatile head;
-	CommNode* volatile tail;
-	volatile bool isEmpty;
-    volatile uint16_t counter;
-} CommQueue;
-
-
-CommQueue* usartToSendQueue(void){
-	static CommQueue usartToSendQueue={NULL,NULL,true,0};
-	return &usartToSendQueue;
-}
-
-CommQueue* usartReceivedQueue(void){
-	static CommQueue usartReceivedQueue={NULL,NULL,true,0};
-	return &usartReceivedQueue;
-}
-
-CommQueue* twiMasterQueue(void){
-	static CommQueue twiMasterQueue={NULL,NULL,true,0};
-	return &twiMasterQueue;
-}
-
-
-
-void queue(CommQueue* queue, void* package, char type){
-    if (queue==NULL)
-        return;
-	CommNode* tmpNode=malloc(sizeof(CommNode));
-	tmpNode->next=NULL;
-	switch(type){
-	case 'u':
-		tmpNode->uPackage=*((UsartPackage*)package);
-		break;
-	case 't':
-		tmpNode->tPackage=*((TwiPackage*)package);
-		break;
-	}
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		if (queue->head==NULL){
-			queue->head=tmpNode;
-			queue->tail=tmpNode;
-			queue->isEmpty=false;
-		}
-		else{
-			queue->tail->next=tmpNode;
-			queue->tail=tmpNode;
-		}
-		queue->counter++;
-	}
-}
-
-Package dequeue(CommQueue* queue,char type){
-    if (queue==NULL || queue->head==NULL)
-    	switch(type){
-    	case 'u':
-    	case 't':
-    	default:
-    		return NULL_PACKAGE;
-    	}
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-    	CommNode* tmpNode=queue->head;
-    	queue->head=queue->head->next;
-    
-    	if (queue->head==NULL){
-    		queue->tail=NULL;
-    		queue->isEmpty=true;
-    	}
-    	Package retPackage;
-    	switch(type){
-    	case 'u':
-    		retPackage.uPackage=tmpNode->uPackage;
-    		break;
-    	case 't':
-    		retPackage.tPackage=tmpNode->tPackage;
-    		break;
-    	}
-    	free(tmpNode);
-    	queue->counter--;
-    	return retPackage;
-    }
-    return NULL_PACKAGE;
-}
 
 inline void usartTransmit(uint8_t data) {
 /* Wait for empty transmit buffer */
@@ -177,6 +30,9 @@ inline uint8_t usartReceive(void){
 	return UDR0;
 
 }
+
+
+
 
 ISR(USART_TX_vect){
 	static bool completedTransmission=true;
@@ -254,12 +110,11 @@ inline UsartPackage usartGetData(void){
 
 
 
-
-inline void twiStart(){
+inline void twiStart(bool twea){
 	TWCR=1<<TWEN|1<<TWEA|1<<TWIE|1<<TWSTA;
 }
 
-inline void twiAddress(uint8_t address, char mode){
+inline void twiAddress(uint8_t address, char mode, bool twea){
 	switch (mode){
 	case 'w':
 	case 'W':
@@ -271,16 +126,95 @@ inline void twiAddress(uint8_t address, char mode){
 		break;
 	}
 	TWDR=address;
-	TWCR=1<<TWEN|1<<TWEA|1<<TWIE;
+	TWCR=1<<TWEN|twea<<TWEA|1<<TWIE;
 }
 
-inline void twiData(uint8_t data){
+inline void twiData(uint8_t data, bool twea){
 	TWDR=data;
-	TWCR=1<<TWEN|1<<TWEA|1<<TWIE;
+	TWCR=1<<TWEN|twea<<TWEA|1<<TWIE;
 }
 
-inline void twiStop(){
-	TWCR=1<<TWEN|1<<TWEA|1<<TWIE|1<<TWSTO;
+inline void twiStop(bool twea){
+	TWCR=1<<TWEN|twea<<TWEA|1<<TWIE|1<<TWSTO;
+}
+
+inline void twiStopStart(bool twea){
+	TWCR=1<<TWEN|twea<<TWEA|1<<TWIE|1<<TWSTO|1<<TWSTA;
+}
+
+
+
+
+
+inline void twiStartAction(TwiPackage* order,uint8_t twiStatusReg){
+	switch(twiStatusReg){
+	case 0x08:
+
+	case 0x10:
+		switch(order->twiControlStatus.mode){
+		case 'W':
+			order->twiControlStatus.control=TWI_SLAW;
+			twiAddress(order->twiControlStatus.address,'W',true);
+			break;
+		case 'R':
+			order->twiControlStatus.control=TWI_SLAR;
+			twiAddress(order->twiControlStatus.address,'R',true);
+			break;
+		}
+		break;
+	default:
+		resetTwiControlStatus(&order->twiControlStatus);
+		order->twiControlStatus.status=twiStatusReg;
+		order->twiControlStatus.control=TWI_ERROR;
+	}
+}
+
+
+inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
+	switch(twiStatusReg){
+	case 0x18:
+		if (order->size>0){
+			order->twiControlStatus.control=TWI_DATA;
+			twiData(*(order->data),true);
+		}
+		else {
+			order->twiControlStatus.control=TWI_STOP;
+			twiStop(true);
+		}
+		break;
+	case 0x20:
+	default:
+		resetTwiControlStatus(&order->twiControlStatus);
+		order->twiControlStatus.control=TWI_ERROR;
+	}
+}
+
+
+inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
+	switch (twiStatusReg){
+	case 0x38:
+	case 0x40:
+	case 0x48:
+	case 0x50:
+	case 0x58:
+	default:
+		resetTwiControlStatus(&order->twiControlStatus);
+		order->twiControlStatus.status=twiStatusReg;
+		order->twiControlStatus.control=TWI_ERROR;
+	}
+
+}
+
+inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
+	switch(twiStatusReg){
+	case 0x28:
+	case 0x30:
+	case 0x38:
+	default:
+		resetTwiControlStatus(&order->twiControlStatus);
+		order->twiControlStatus.status=twiStatusReg;
+		order->twiControlStatus.control=TWI_ERROR;
+	}
 }
 
 
@@ -288,6 +222,7 @@ ISR(TWI_vect){
 	uint8_t twiStatusReg=TWSR & (0b11111000);
 	static bool orderDone=true;
 	static TwiPackage* order=NULL;
+	static uint8_t counter=0;
 	if (twiMasterQueue()->isEmpty){
 		return;
 	}
@@ -295,70 +230,27 @@ ISR(TWI_vect){
 		order=&(twiMasterQueue()->head->tPackage);
 		orderDone=false;
 		order->twiControlStatus.control=TWI_START;
-		twiStart();
+		twiStart(true);
 		return;
 	}
 	switch(order->twiControlStatus.control){
 	case TWI_START:
-		switch(twiStatusReg){
-		case 0x08:
-		case 0x10:
-			switch(order->twiControlStatus.mode){
-			case 'W':
-				order->twiControlStatus.control=TWI_SLAW;
-				twiAddress(order->twiControlStatus.address,'W');
-				break;
-			case 'R':
-				order->twiControlStatus.control=TWI_SLAR;
-				twiAddress(order->twiControlStatus.address,'R');
-				break;
-			}
-			break;
-		default:
-			resetTwiControlStatus(&order->twiControlStatus);
-			order->twiControlStatus.status=twiStatusReg;
-			order->twiControlStatus.control=TWI_ERROR;
-		}
+		twiStartAction(order,twiStatusReg);
 		break;
 	case TWI_SLAW:
-		switch(twiStatusReg){
-		case 0x18:
-		case 0x20:
-		default:
-			resetTwiControlStatus(&order->twiControlStatus);
-			order->twiControlStatus.control=TWI_ERROR;
-		}
+		twiSlawAction(order,twiStatusReg);
 		break;
 	case TWI_SLAR:
-		switch (twiStatusReg){
-		case 0x38:
-		case 0x40:
-		case 0x48:
-		case 0x50:
-		case 0x58:
-		default:
-			resetTwiControlStatus(&order->twiControlStatus);
-			order->twiControlStatus.status=twiStatusReg;
-			order->twiControlStatus.control=TWI_ERROR;
-		}
+		twiSlarAction(order,twiStatusReg);
 		break;
 	case TWI_DATA:
-		switch(twiStatusReg){
-		case 0x28:
-		case 0x30:
-		case 0x38:
-		default:
-			resetTwiControlStatus(&order->twiControlStatus);
-			order->twiControlStatus.status=twiStatusReg;
-			order->twiControlStatus.control=TWI_ERROR;
-		}
+		twiDataAction(order,twiStatusReg);
 		break;
-	default:{
-		uint8_t* twiStaTemp=malloc(1);
-		*twiStaTemp=twiStatusReg;
-		usartSendData(twiStaTemp,1,true);
+	default:;
 	}
-	}
+	uint8_t* twiStaTemp=malloc(1);
+	*twiStaTemp=twiStatusReg;
+	usartSendData(twiStaTemp,1,true);
 }
 
 
