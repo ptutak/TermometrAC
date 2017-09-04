@@ -30,6 +30,7 @@ typedef enum {
 	TWI_SLAW,
 	TWI_SLAR,
 	TWI_DATA,
+	TWI_REP_DATA,
 	TWI_STOP,
 	TWI_ERROR
 }TwiControl;

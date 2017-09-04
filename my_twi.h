@@ -1,5 +1,5 @@
 #ifndef _MY_TWI_H_
-#define _MY_TWI_H_ 1
+#define _MY_TWI_H_
 
 #include "my_types.h"
 #include "my_usart.h"
@@ -14,7 +14,7 @@ CommQueue* twiMasterQueue(void);
 void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address);
 
 
-void twiInit(uint32_t freq);
+void twiInit(uint32_t freq,bool twea);
 
 
 
