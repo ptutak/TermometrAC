@@ -217,5 +217,10 @@ void twiInit(uint32_t freq, bool twea){
 	TWBR=twbr;
 }
 
+void twiOff(){
+	TWBR=0;
+	TWSR=0;
+	TWCR=0;
+}
 
 
