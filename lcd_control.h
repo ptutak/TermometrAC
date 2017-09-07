@@ -11,97 +11,127 @@ typedef enum {
 }LCDStatus;
 
 typedef enum{
-	LCD_CLEAR_DISPLAY=1,
-	LCD_RETURN_HOME=2,
+	LCD_NULL=0x00,
 
-	LCD_SET_DECREMENT=4,
-	LCD_SET_DECREMENT_SHIFT=5,
+	LCD_CLEAR_DISPLAY=0x01,
+	LCD_RETURN_HOME=0x02,
 
-	LCD_SET_INCREMENT=6,
-	LCD_SET_INCREMENT_SHIFT=7,
+	LCD_SET_DECREMENT=0x04,
+	LCD_SET_DECREMENT_SHIFT=0x05,
 
-	LCD_SET_DISPLAY_OFF=8,
-	LCD_SET_DISPLAY_ON_CURSOR_OFF_BLINKING_OFF=12,
-	LCD_SET_DISPLAY_ON_CURSOR_OFF_BLINKING_ON=13,
-	LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_OFF=14,
-	LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_ON=15,
+	LCD_SET_INCREMENT=0x06,
+	LCD_SET_INCREMENT_SHIFT=0x07,
 
-	LCD_SHIFT_CURSOR_LEFT=16,
-	LCD_SHIFT_CURSOR_RIGHT=20,
-	LCD_SHIFT_DISPLAY_LEFT=24,
-	LCD_SHIFT_DISPLAY_RIGHT=28,
+	LCD_SET_DISPLAY_OFF=0x08,
+	LCD_SET_DISPLAY_ON_CURSOR_OFF_BLINKING_OFF=0x0C,
+	LCD_SET_DISPLAY_ON_CURSOR_OFF_BLINKING_ON=0x0D,
+	LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_OFF=0x0E,
+	LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_ON=0x0F,
 
-	LCD_F_SET_4_BIT_1_LINE_8_FONT=32,
-	LCD_F_SET_4_BIT_1_LINE_10_FONT=36,
-	LCD_F_SET_4_BIT_2_LINE_8_FONT=40,
-	LCD_F_SET_8_BIT_1_LINE_8_FONT=48,
-	LCD_F_SET_8_BIT_1_LINE_10_FONT=52,
-	LCD_F_SET_8_BIT_2_LINE_8_FONT=56,
+	LCD_SHIFT_CURSOR_LEFT=0x10,
+	LCD_SHIFT_CURSOR_RIGHT=0x14,
+	LCD_SHIFT_DISPLAY_LEFT=0x18,
+	LCD_SHIFT_DISPLAY_RIGHT=0x1C,
 
-	LCD_SET_CGRAM_ADDR=64,
-	LCD_SET_DDRAM_ADDR=128
+	LCD_F_SET_4_BIT_1_LINE_8_FONT=0x20,
+	LCD_F_SET_4_BIT_1_LINE_10_FONT=0x24,
+	LCD_F_SET_4_BIT_2_LINE_8_FONT=0x28,
+	LCD_F_SET_8_BIT_1_LINE_8_FONT=0x30,
+	LCD_F_SET_8_BIT_1_LINE_10_FONT=0x34,
+	LCD_F_SET_8_BIT_2_LINE_8_FONT=0x38,
+
+	LCD_SET_CGRAM_ADDR=0x40,
+	LCD_SET_DDRAM_ADDR=0x80,
+
+	LCD_FULL=0xFF
 
 }LCDCommand;
 
+
+//byte structure: 0b0,0,0,0,bt,e,rw,rs
 typedef enum{
-	LCD_WRITE_CG_OR_DDR=1,
-	LCD_READ_BS_FLAG=2,
-	LCD_READ_CG_OR_DDR=3,
+	LCD_COMMAND=0x00,
 
-	LCD_WRITE_CG_OR_DDR_E=5,
-	LCD_READ_CG_OR_DDR_E=7,
+	LCD_WRITE_CG_OR_DDR=0x01,
 
-	LCD_WRITE_CG_OR_DDR_BT=9,
-	LCD_READ_CG_OR_DDR_BT=11,
+	LCD_READ_BS_FLAG_AND_ADDR=0x02,
 
-	LCD_WRITE_CG_OR_DDR_E_BT=13,
-	LCD_READ_CG_OR_DDR_E_BT=15,
-}RSRWEBT;
+	LCD_READ_CG_OR_DDR=0x03,
 
-typedef union {
-	RSRWEBT command;
-	struct {
-		bool rs :1;
-		bool rw :1;
-		bool e  :1;
-		bool bt :1;
-		bool    :0;
-	};
-}LCDRSRWEBT;
+	LCD_WRITE_CG_OR_DDR_E=0x05,
 
+	LCD_READ_BS_FLAG_AND_ADDR_E=0x06,
 
+	LCD_READ_CG_OR_DDR_E=0x07,
+
+	LCD_COMMAND_BT=0x08,
+
+	LCD_WRITE_CG_OR_DDR_BT=0x09,
+	LCD_READ_CG_OR_DDR_BT=0x0B,
+
+	LCD_WRITE_CG_OR_DDR_E_BT=0x0D,
+	LCD_READ_CG_OR_DDR_E_BT=0x0F,
+}LCDCommandType;
+
+typedef struct{
+	LCDCommandType commandType;
+	LCDCommand command;
+}LCDCommadS;
+
+typedef struct{
+	uint8_t low;
+	uint8_t high;
+}uint16_t_split;
 
 typedef struct{
 	uint8_t address;
 	LCDStatus status;
-	const __flash uint8_t* configInit;
+	const __flash LCDCommandS* configInit;
+	uint8_t configInitArraySize;
 }LCD;
 
-const __flash uint8_t* LCD_CONFIG_INIT_2X16={0x20,
-											0x20,0xC0,		//number of lines
-											0x00,0x80,		//display OFF
-											0x00,0x10,		//display CLEAR
-											0x00,0x70 };	//entry mode set
+const __flash LCDCommandS LCD_CONFIG_INIT_2X16S[]={
+		{LCD_COMMAND,LCD_F_SET_4_BIT_2_LINE_8_FONT},
+		{LCD_COMMAND,LCD_SET_DISPLAY_OFF},
+		{LCD_COMMAND,LCD_CLEAR_DISPLAY},
+		{LCD_COMMAND,LCD_SET_INCREMENT},
+		{LCD_COMMAND,LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_ON}
+};
 
 
 
-uint16_t splitDataPCF8574_DataHigh(LCDRSRWEBT status, uint8_t data){
-	uint8_t high=e<<2; //E enabled;
-	uint8_t low=e<<2; //E enabled;
-	high|=rs;
-	low|=rs;
-	high|=rw<<1;
-	low|=rw<<1;
+uint16_t_split splitDataPCF8574_DataHigh(LCDCommandType commandType, uint8_t data){
+	uint8_t high=(uint8_t)commandType;
+	uint8_t low=(uint8_t)commandType;
 	high|=data&(0xF0);
 	low|=data<<4;
-	return (uint16_t)((high<<8)|low);
+	return (uint16_t_split){low,high};
 }
 
 
-void initLCD(LCD* lcd, const __memx uint8_t* configInit, uint8_t address){
-	lcd->address=address;
-	lcd->config
+void initLCD(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8_t data)){
+	if (lcd->configInitArraySize==0)
+		return;
+
+	uint16_t_split waitForBSFlag=(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR,LCD_NULL);
+	uint16_t_split firstData=(*splitFunction)(lcd->configInit[0].commandType,lcd->configInit[0].command);
+
+	uint8_t initDataSize=lcd->configInitArraySize*sizeof(LCDCommandS)*2+1;
+	uint8_t* initData=malloc(initDataSize);
+
+	initData[0]=firstData.high;
+
+	for (int i=0;i<lcd->configInitArraySize;i++){
+		uint16_t_split tmpData=(*splitFunction)(lcd->configInit[i].commandType,lcd->configInit[i].command);
+		initData[1+i*sizeof(LCDCommandS)*2]=tmpData.high;
+		initData[1+i*sizeof(LCDCommandS)*2+1]=tmpData.low;
+		initData[1+i*sizeof(LCDCommandS)*2+2]=waitForBSFlag.high;
+		initData[1+i*sizeof(LCDCommandS)*2+3]=waitForBSFlag.low;
+	}
+
 	twiInit(100000,true);
+
+	twiSendData(initData,initDataSize,true);
 
 }
 

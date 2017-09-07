@@ -7,10 +7,6 @@
 
 #define MAX_TWI_COUNT 10;
 
-
-CommQueue* twiMasterQueue(void);
-
-
 void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address);
 
 
