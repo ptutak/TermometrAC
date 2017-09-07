@@ -38,11 +38,11 @@ static inline void twiData(uint8_t data, bool twea){
 static inline void twiStop(bool twea){
 	TWCR=1<<TWEN|1<<TWIE|1<<TWSTO|twea<<TWEA;
 }
-
+/*
 static inline void twiStopStart(bool twea){
 	TWCR=1<<TWEN|1<<TWIE|1<<TWSTO|1<<TWSTA|twea<<TWEA;
 }
-
+*/
 
 
 

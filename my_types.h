@@ -52,14 +52,15 @@ extern const TwiControlStatus TWI_MASTER_TO_SEND_STATUS;
 extern const TwiControlStatus TWI_MASTER_RECEIVE_STATUS;
 
 
+typedef struct TwiPackage TwiPackage;
 
-
-typedef struct{
+struct TwiPackage{
 	const __memx uint8_t* data;
 	uint8_t size;
 	bool dynamic;
 	TwiControlStatus twiControlStatus;
-} TwiPackage;
+	void (*runFunc)(TwiPackage* self);
+};
 
 
 
