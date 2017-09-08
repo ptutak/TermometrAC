@@ -41,8 +41,8 @@ static inline uint8_t twiDataReceive(bool twea){
 	return data;
 }
 
-static inline void twiStop(){
-	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO;
+static inline void twiStop(bool twea){
+	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO|twea<<TWEA;
 }
 /*
 static inline void twiAck(){
@@ -137,7 +137,7 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 		if (order->size==marker){
 			order->twiControlStatus.control=TWI_STOP;
 			marker=1;
-			twiStop(false);
+			twiStop(true);
 		}
 		else {
 			twiDataSend(*(order->data+marker),false);
@@ -157,7 +157,7 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 		break;
 	case 0x58:
 		marker=1;
-		twiStop(false);
+		twiStop(true);
 		break;
 	case 0x38:
 	default:
@@ -167,64 +167,70 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 }
 
 
-ISR(TWI_vect){
-	uint8_t twiStatusReg=TWSR & (0b11111000);
+ISR(TWI_vect,ISR_NOBLOCK){
 	static bool orderDone=true;
 	static TwiPackage* order=NULL;
 	static uint8_t counter=0;
-	if (twiMasterQueue()->isEmpty){
-		return;
-	}
-	if (orderDone){
-		order=&(twiMasterQueue()->head->tPackage);
-		orderDone=false;
-		order->twiControlStatus.control=TWI_START;
-		twiStart(true);
-		return;
-	}
-	switch(order->twiControlStatus.control){
-	case TWI_START:
-		twiStartAction(order,twiStatusReg);
-		break;
-	case TWI_REP_START:
-		if (counter==10){
-			order->twiControlStatus.control=TWI_STOP;
-			counter=0;
-			twiStop(true);
+	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		uint8_t twiStatusReg=TWSR & (0b11111000);
+		if (twiMasterQueue()->isEmpty){
+			return;
 		}
-		else {
+		if (orderDone){
+			order=&(twiMasterQueue()->head->tPackage);
+			orderDone=false;
+			order->twiControlStatus.control=TWI_START;
+			twiStart(true);
+			return;
+		}
+		switch(order->twiControlStatus.control){
+		case TWI_START:
 			twiStartAction(order,twiStatusReg);
-			counter++;
-		}
-		break;
-	case TWI_SLAW:
-		twiSlawAction(order,twiStatusReg);
-		break;
-	case TWI_SLAR:
-		twiSlarAction(order,twiStatusReg);
-		break;
-	case TWI_DATA:
-		counter=0;
-		twiDataAction(order,twiStatusReg);
-		break;
-	case TWI_REP_DATA:
-		if (counter==10){
-			order->twiControlStatus.control=TWI_STOP;
+			break;
+		case TWI_REP_START:
+			if (counter==10){
+				order->twiControlStatus.control=TWI_STOP;
+				counter=0;
+				twiStop(true);
+			}
+			else {
+				twiStartAction(order,twiStatusReg);
+				counter++;
+			}
+			break;
+		case TWI_SLAW:
+			twiSlawAction(order,twiStatusReg);
+			break;
+		case TWI_SLAR:
+			twiSlarAction(order,twiStatusReg);
+			break;
+		case TWI_DATA:
 			counter=0;
-			twiStop(true);
-		} else{
-			counter++;
 			twiDataAction(order,twiStatusReg);
+			break;
+		case TWI_REP_DATA:
+			if (counter==10){
+				order->twiControlStatus.control=TWI_STOP;
+				counter=0;
+				twiStop(true);
+			} else{
+				counter++;
+				twiDataAction(order,twiStatusReg);
+			}
+			break;
+		default:;
+
 		}
-		break;
-	default:;
+
+		if (order->twiControlStatus.control==TWI_STOP){
+			orderDone=true;
+			orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
+		}
 	}
-	if (order->twiControlStatus.control==TWI_STOP){
-		orderDone=true;
-		TwiPackage orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
+	if (orderDone)
 		if (orderToRemove.runFunc)
 			(*orderToRemove.runFunc)(&orderToRemove);
-	}
 }
 
 

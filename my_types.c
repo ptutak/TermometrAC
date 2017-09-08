@@ -8,6 +8,7 @@ const TwiControlStatus TWI_MASTER_RECEIVE_STATUS={TWI_NULL,0};
 
 const Package NULL_PACKAGE={.tPackage={NULL,0,0,'\0',{TWI_NULL,0},NULL}};
 
+const TwiPackage NULL_TWI_PACKAGE={NULL,0,0,'\0',{TWI_NULL,0},NULL};
 
 
 void freeData(TwiPackage* package){

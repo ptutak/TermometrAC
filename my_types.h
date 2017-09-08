@@ -69,7 +69,7 @@ typedef union{
 
 
 
-
+extern const TwiPackage NULL_TWI_PACKAGE;
 
 extern const Package NULL_PACKAGE;
 
