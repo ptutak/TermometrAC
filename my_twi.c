@@ -51,8 +51,6 @@ static inline void twiAck(){
 static inline void twiNotAck(){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE;
 }
-
-/*
 static inline void twiStopStart(bool twea){
 	TWCR=1<<TWEN|1<<TWIE|1<<TWSTO|1<<TWSTA|twea<<TWEA;
 }
@@ -124,9 +122,6 @@ static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
 		order->twiControlStatus.control=TWI_REP_START;
 		twiStart(true);
 		break;
-	case 0x50:
-
-	case 0x58:
 	case 0x38:
 	default:
 		order->twiControlStatus.status=twiStatusReg;
@@ -142,16 +137,27 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 		if (order->size==marker){
 			order->twiControlStatus.control=TWI_STOP;
 			marker=1;
-			twiStop(true);
+			twiStop(false);
 		}
 		else {
-			twiDataSend(*(order->data+marker),true);
+			twiDataSend(*(order->data+marker),false);
 			marker++;
 		}
 		break;
 	case 0x30:
 		order->twiControlStatus.control=TWI_REP_DATA;
 		twiDataSend(*(order->data+marker-1),true);
+		break;
+	case 0x50:
+		if (order->size+1==marker)
+			*((uint8_t*)order->data+marker)=twiDataReceive(false);
+		else
+			*((uint8_t*)order->data+marker)=twiDataReceive(true);
+		marker++;
+		break;
+	case 0x58:
+		marker=1;
+		twiStop(false);
 		break;
 	case 0x38:
 	default:
