@@ -37,8 +37,6 @@ typedef enum {
 
 typedef struct{
 	volatile TwiControl control;
-	volatile uint8_t address;
-	volatile char mode;
 	volatile uint8_t status;
 } TwiControlStatus;
 
@@ -57,15 +55,13 @@ typedef struct TwiPackage TwiPackage;
 struct TwiPackage{
 	const __memx uint8_t* data;
 	uint8_t size;
-	bool dynamic;
+	uint8_t address;
+	char mode;
 	TwiControlStatus twiControlStatus;
 	void (*runFunc)(TwiPackage* self);
 };
 
-
-
-
-
+void freeFunc(TwiPackage* package);
 
 typedef union{
 	UsartPackage uPackage;
@@ -97,6 +93,7 @@ typedef struct {
 	volatile bool isEmpty;
     volatile uint16_t counter;
 }CommQueue;
+
 
 
 
