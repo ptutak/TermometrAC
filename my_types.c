@@ -10,7 +10,6 @@ const Package NULL_PACKAGE={.tPackage={NULL,0,0,'\0',{TWI_NULL,0},NULL}};
 
 
 
-void freeFunc(TwiPackage* package){
-
+void freeData(TwiPackage* package){
 	free((uint8_t*)package->data);
 }

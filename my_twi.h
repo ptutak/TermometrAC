@@ -1,13 +1,15 @@
 #ifndef _MY_TWI_H_
 #define _MY_TWI_H_
 
+#include <util/twi.h>
 #include "my_types.h"
 #include "my_usart.h"
 #include "my_queue.h"
 
+
 #define MAX_TWI_COUNT 10;
 
-void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address);
+void twiSendData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
 
 
 void twiInit(uint32_t freq,bool twea);

@@ -114,7 +114,12 @@ static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
 	case 0x40:
 		if (order->size>0){
 			order->twiControlStatus.control=TWI_DATA;
+			if (order->size==1)
+				*((uint8_t*)order->data)=twiDataReceive(false);
+			else
+				*((uint8_t*)order->data)=twiDataReceive(true);
 		}
+		break;
 	case 0x48:
 		order->twiControlStatus.control=TWI_REP_START;
 		twiStart(true);
@@ -218,12 +223,6 @@ ISR(TWI_vect){
 
 
 
-void twiSendData(uint8_t* data, uint8_t size, bool dynamic,uint8_t address){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',dynamic,{TWI_NULL,0}}),'t');
-}
-
-
-
 void twiInit(uint32_t freq, bool twea){
 	TWCR=1<<TWEN|1<<TWIE|twea<<TWEA;
 	uint32_t twbr=(F_CPU/freq - 16)/2;
@@ -243,4 +242,7 @@ void twiOff(){
 	TWCR=0;
 }
 
+void twiSendData(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',{TWI_NULL,0},callFunc}),'t');
+}
 

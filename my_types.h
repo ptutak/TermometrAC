@@ -4,7 +4,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <util/atomic.h>
-#include <util/twi.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdbool.h>
@@ -61,7 +60,7 @@ struct TwiPackage{
 	void (*runFunc)(TwiPackage* self);
 };
 
-void freeFunc(TwiPackage* package);
+void freeData(TwiPackage* package);
 
 typedef union{
 	UsartPackage uPackage;
