@@ -44,6 +44,9 @@ static inline uint8_t twiDataReceive(bool twea){
 static inline void twiStop(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO|twea<<TWEA;
 }
+static inline void twiClearInt(bool twea){
+	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
+}
 /*
 static inline void twiAck(){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWEA;
@@ -175,6 +178,7 @@ ISR(TWI_vect,ISR_NOBLOCK){
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		uint8_t twiStatusReg=TWSR & (0b11111000);
 		if (twiMasterQueue()->isEmpty){
+			twiClearInt(false);
 			return;
 		}
 		if (orderDone){
@@ -222,7 +226,6 @@ ISR(TWI_vect,ISR_NOBLOCK){
 		default:;
 
 		}
-
 		if (order->twiControlStatus.control==TWI_STOP){
 			orderDone=true;
 			orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
