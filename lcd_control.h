@@ -78,10 +78,6 @@ typedef struct{
 	LCDCommand command;
 }LCDCommadS;
 
-typedef struct{
-	uint8_t low;
-	uint8_t high;
-}uint16_t_split;
 
 typedef struct{
 	uint8_t address;
@@ -98,8 +94,6 @@ const __flash LCDCommandS LCD_CONFIG_INIT_2X16S[]={
 		{LCD_COMMAND,LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_ON}
 };
 
-
-
 uint16_t_split splitDataPCF8574_DataHigh(LCDCommandType commandType, uint8_t data){
 	uint8_t high=(uint8_t)commandType;
 	uint8_t low=(uint8_t)commandType;
@@ -113,8 +107,24 @@ void initLCD(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8
 	if (lcd->configInitArraySize==0)
 		return;
 
-	uint16_t_split waitForBSFlag=(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR,LCD_NULL);
-	uint16_t_split firstData=(*splitFunction)(lcd->configInit[0].commandType,lcd->configInit[0].command);
+	uint8_t waitForBSFlag[]={(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR,LCD_FULL).high,(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR,LCD_FULL).low};
+	uint16_t_split configData=(*splitFunction)(lcd->configInit[0].commandType,lcd->configInit[0].command);
+
+	uint8_t data[2];
+	data[0]=configData.high;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		twiSendMasterDataNoInterrupt(data,1,lcd->address,NULL);
+		twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,NULL);
+	}
+	twiManageOrders();
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		twiSendMasterDataNoInterrupt(data,2,lcd->address,NULL);
+		twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,NULL);
+
+	}
+
+	/*
+
 
 	uint8_t initDataSize=lcd->configInitArraySize*sizeof(LCDCommandS)*2+1;
 	uint8_t* initData=malloc(initDataSize);
@@ -129,9 +139,8 @@ void initLCD(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8
 		initData[1+i*sizeof(LCDCommandS)*2+3]=waitForBSFlag.low;
 	}
 
-	twiInit(100000,true);
-
-	twiSendData(initData,initDataSize,true);
+	twiSendMasterData(initData,initDataSize,true);
+	*/
 
 }
 

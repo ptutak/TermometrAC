@@ -10,6 +10,11 @@
 #include <stdlib.h>
 
 
+typedef struct{
+	uint8_t low;
+	uint8_t high;
+}uint16_t_split;
+
 
 
 typedef struct {
@@ -34,21 +39,6 @@ typedef enum {
 	TWI_ERROR
 }TwiControl;
 
-typedef struct{
-	volatile TwiControl control;
-	volatile uint8_t status;
-} TwiControlStatus;
-
-
-
-
-extern const TwiControlStatus NULL_TWI_CONTROL_STATUS;
-
-extern const TwiControlStatus TWI_MASTER_TO_SEND_STATUS;
-
-extern const TwiControlStatus TWI_MASTER_RECEIVE_STATUS;
-
-
 typedef struct TwiPackage TwiPackage;
 
 struct TwiPackage{
@@ -56,7 +46,7 @@ struct TwiPackage{
 	uint8_t size;
 	uint8_t address;
 	char mode;
-	TwiControlStatus twiControlStatus;
+	volatile TwiControl control;
 	void (*runFunc)(TwiPackage* self);
 };
 

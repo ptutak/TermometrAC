@@ -9,8 +9,18 @@
 
 #define MAX_TWI_COUNT 10;
 
-void twiSendData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
+CommQueue* twiMasterQueue(void);
 
+void twiSendMasterData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
+void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
+
+
+void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self));
+void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self));
+
+inline void twiManageOrders(){
+	TWI_vect();
+}
 
 void twiInit(uint32_t freq,bool twea);
 

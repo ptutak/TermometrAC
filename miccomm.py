@@ -7,10 +7,6 @@ Created on Mon Aug 28 11:02:58 2017
 """
 import serial
 
-def writeMicText(myMicSerial,text):
-    myMicSerial.write([len(text)])
-    myMicSerial.write(bytes(text,encoding='utf-8'))
-
 class MySerial(serial.Serial):
     def writeText(self,text):
         self.write([len(text)+1])

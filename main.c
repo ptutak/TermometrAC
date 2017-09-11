@@ -3,7 +3,7 @@
 #include "my_twi.h"
 #include "my_usart.h"
 #include "my_queue.h"
-
+#include "string.h"
 
 
 static const uint16_t BAUD=9600;
@@ -14,6 +14,8 @@ int main(void){
     DDRB|=1<<PB5;
     PORTB^=1<<PB5;
     const char __flash * text=PSTR("Czesc\n");
+    const char __flash * text2=PSTR("Czesc2\n");
+
     const char* received;
     uint8_t size=0;
     usartSendText(text,sizeof("Czesc\n"),false);
