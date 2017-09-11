@@ -5,6 +5,7 @@
 #include "my_twi.h"
 
 
+
 typedef enum {
 	LCD_NULL=0,
 	LCD_INIT,
@@ -101,13 +102,25 @@ uint16_t_split splitDataPCF8574_DataHigh(LCDCommandType commandType, uint8_t dat
 	low|=data<<4;
 	return (uint16_t_split){low,high};
 }
+void waitForBSFlagFunc(TwiPackage* package);
 
+const uint8_t waitForBSFlag[]={0b11110010,0b11110010};
+
+TwiPackage* waitForBSFlagPackage(uint8_t address){
+	static TwiPackage package={waitForBSFlag,2,0,'R',TWI_NULL,waitForBSFlagFunc};
+	package.address=address;
+	return &package;
+}
+
+void waitForBSFlagFunc(TwiPackage* package){
+	if (*(package->data)&0b00001000)
+		insert(twiMasterQueue(),(void*)waitForBSFlagPackage(package->address),'t',0);
+}
 
 void initLCD(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8_t data)){
 	if (lcd->configInitArraySize==0)
 		return;
 
-	uint8_t waitForBSFlag[]={(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR,LCD_FULL).high,(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR,LCD_FULL).low};
 	uint16_t_split configData=(*splitFunction)(lcd->configInit[0].commandType,lcd->configInit[0].command);
 
 	uint8_t data[2];

@@ -50,16 +50,18 @@ struct TwiPackage{
 	void (*runFunc)(TwiPackage* self);
 };
 
+extern const TwiPackage NULL_TWI_PACKAGE;
+
 void freeData(TwiPackage* package);
+
+
+
+
 
 typedef union{
 	UsartPackage uPackage;
 	TwiPackage tPackage;
 }Package;
-
-
-
-extern const TwiPackage NULL_TWI_PACKAGE;
 
 extern const Package NULL_PACKAGE;
 
