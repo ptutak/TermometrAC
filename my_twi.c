@@ -276,3 +276,7 @@ void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void(*callF
 void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_NULL,callFunc}),'t');
 }
+
+void twiManageOrders(){
+	TWI_vect();
+}

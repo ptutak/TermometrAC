@@ -14,7 +14,6 @@ int main(void){
     DDRB|=1<<PB5;
     PORTB^=1<<PB5;
     const char __flash * text=PSTR("Czesc\n");
-    const char __flash * text2=PSTR("Czesc2\n");
 
     const char* received;
     uint8_t size=0;
