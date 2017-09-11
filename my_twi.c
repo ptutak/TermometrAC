@@ -232,11 +232,12 @@ ISR(TWI_vect,ISR_NOBLOCK){
 			orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
 		}
 	}
-	if (orderDone)
+	if (orderDone){
 		if (orderToRemove.runFunc)
 			(*orderToRemove.runFunc)(&orderToRemove);
-	if (!twiMasterQueue()->isEmpty)
-		TWI_vect();
+		if (!twiMasterQueue()->isEmpty)
+			TWI_vect();
+	}
 }
 
 

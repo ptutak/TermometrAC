@@ -64,4 +64,42 @@ Package dequeue(CommQueue* queue,char type){
     return NULL_PACKAGE;
 }
 
+void insert(CommQueue* queue, void* package, char type, uint16_t index){
+	if (queue==NULL || index>queue->counter)
+		return;
+	CommNode* tmpNode=malloc(sizeof(CommNode));
+	tmpNode->next=NULL;
+	switch(type){
+	case 'u':
+		tmpNode->uPackage=*((UsartPackage*)package);
+		break;
+	case 't':
+		tmpNode->tPackage=*((TwiPackage*)package);
+		break;
+	}
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (index==0){
+			if (queue->head!=NULL)
+				tmpNode=queue->head->next;
+			else{
+				queue->tail=tmpNode;
+				queue->isEmpty=false;
+			}
+			queue->head=tmpNode;
+		}
+		else {
+			CommNode* prev=queue->head;
+			index--;
+			while (index){
+				index--;
+				prev=prev->next;
+			}
+			tmpNode->next=prev->next;
+			prev->next=tmpNode;
+			if(prev==queue->tail)
+				queue->tail=tmpNode;
+		}
+		queue->counter++;
+	}
+}
 
