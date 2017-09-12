@@ -22,7 +22,12 @@ int main(void){
     _delay_ms(5000);
     twiInit(TWI_FREQ,true);
     LCD lcd;
-//    PORTB=1<<PB5;
+    lcd.address=0x4E;
+    lcd.configInitArray=LCD_CONFIG_INIT_2X16S;
+    lcd.configInitArraySize=LCD_CONFIG_INIT_2X16S_SIZE;
+    lcdInit(&lcd,splitDataPCF8574_DataHigh);
+
+    PORTB=1<<PB5;
     while(1){
         if(!usartReceivedQueue()->isEmpty){
             received=usartGetText();
