@@ -6,7 +6,9 @@ CommQueue* twiMasterQueue(void){
 	return &twiMasterQueue;
 }
 
-
+bool twiEnabled(void){
+	return (bool)TWCR&1<<TWEN;
+}
 
 
 

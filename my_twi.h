@@ -7,11 +7,13 @@
 #include "my_queue.h"
 
 
-#define MAX_TWI_COUNT 10;
+#define MAX_TWI_COUNT 10
 
+#define TWI_FREQ 100000
+
+bool twiEnabled(void);
 
 CommQueue* twiMasterQueue(void);
-
 
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
