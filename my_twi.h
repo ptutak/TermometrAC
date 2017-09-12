@@ -9,7 +9,10 @@
 
 #define MAX_TWI_COUNT 10;
 
+
 CommQueue* twiMasterQueue(void);
+
+
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
 void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));

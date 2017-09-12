@@ -170,13 +170,13 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 
 
 ISR(TWI_vect,ISR_NOBLOCK){
-	if (!(TWCR&1<<TWEN))
-		return;
 	static bool orderDone=true;
 	static TwiPackage* order=NULL;
 	static uint8_t counter=0;
 	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (!(TWCR&1<<TWEN))
+			return;
 		uint8_t twiStatusReg=TWSR & (0b11111000);
 		if (twiMasterQueue()->isEmpty){
 			twiClearInt(false);
@@ -194,7 +194,7 @@ ISR(TWI_vect,ISR_NOBLOCK){
 			twiStartAction(order,twiStatusReg);
 			break;
 		case TWI_REP_START:
-			if (counter==10){
+			if (counter==MAX_TWI_COUNT){
 				order->control=TWI_STOP;
 				counter=0;
 				twiStop(true);
@@ -215,7 +215,7 @@ ISR(TWI_vect,ISR_NOBLOCK){
 			twiDataAction(order,twiStatusReg);
 			break;
 		case TWI_REP_DATA:
-			if (counter==10){
+			if (counter==MAX_TWI_COUNT){
 				order->control=TWI_STOP;
 				counter=0;
 				twiStop(true);
@@ -228,8 +228,8 @@ ISR(TWI_vect,ISR_NOBLOCK){
 
 		}
 		if (order->control==TWI_STOP){
-			orderDone=true;
 			orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
+			orderDone=true;
 		}
 	}
 	if (orderDone){

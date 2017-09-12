@@ -102,6 +102,8 @@ uint16_t_split splitDataPCF8574_DataHigh(LCDCommandType commandType, uint8_t dat
 	low|=data<<4;
 	return (uint16_t_split){low,high};
 }
+
+
 void waitForBSFlagFunc(TwiPackage* package);
 
 const uint8_t waitForBSFlag[]={0b11110010,0b11110010};
@@ -117,6 +119,8 @@ void waitForBSFlagFunc(TwiPackage* package){
 		insert(twiMasterQueue(),(void*)waitForBSFlagPackage(package->address),'t',0);
 }
 
+
+
 void initLCD(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8_t data)){
 	if (lcd->configInitArraySize==0)
 		return;
@@ -127,34 +131,16 @@ void initLCD(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8
 	data[0]=configData.high;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		twiSendMasterDataNoInterrupt(data,1,lcd->address,NULL);
-		twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,NULL);
+		twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,waitForBSFlagFunc);
+		for (int i=0;i<lcd->configInitArraySize;i++){
+			configData=(*splitFunction)(lcd->configInit[i].commandType,lcd->configInit[i].command);
+			data[0]=configData.high;
+			data[1]=configData.low;
+			twiSendMasterDataNoInterrupt(data,2,lcd->address,NULL);
+			twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,waitForBSFlagFunc);
+		}
 	}
 	twiManageOrders();
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		twiSendMasterDataNoInterrupt(data,2,lcd->address,NULL);
-		twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,NULL);
-
-	}
-
-	/*
-
-
-	uint8_t initDataSize=lcd->configInitArraySize*sizeof(LCDCommandS)*2+1;
-	uint8_t* initData=malloc(initDataSize);
-
-	initData[0]=firstData.high;
-
-	for (int i=0;i<lcd->configInitArraySize;i++){
-		uint16_t_split tmpData=(*splitFunction)(lcd->configInit[i].commandType,lcd->configInit[i].command);
-		initData[1+i*sizeof(LCDCommandS)*2]=tmpData.high;
-		initData[1+i*sizeof(LCDCommandS)*2+1]=tmpData.low;
-		initData[1+i*sizeof(LCDCommandS)*2+2]=waitForBSFlag.high;
-		initData[1+i*sizeof(LCDCommandS)*2+3]=waitForBSFlag.low;
-	}
-
-	twiSendMasterData(initData,initDataSize,true);
-	*/
-
 }
 
 #endif _LCD_CONTROL_H_
