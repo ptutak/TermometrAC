@@ -9,18 +9,12 @@
 
 static const uint16_t BAUD=9600;
 
-
-static inline void usartTransmit(uint8_t data) {
-	while (!(UCSR0A & (1<<UDRE0)));
-	UDR0 = data;
-}
-
-
 int main(void){
 	usartInit(BAUD);
 	DDRB=1<<PB5;
     const char* received;
     uint8_t size=0;
+
     usartSendText(PSTR("Czesc\n"),sizeof("Czesc\n"),false);
 /*
     twiInit(TWI_FREQ,true);
@@ -37,8 +31,6 @@ int main(void){
             while(*(received+size))
                 size++;
             size++;
-            usartTransmit('h');
-            usartTransmit('\n');
             usartSendText(received,size,true);
             size=0; 
         }

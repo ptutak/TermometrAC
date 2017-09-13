@@ -9,6 +9,9 @@ CommQueue* usartToSendQueue(void);
 CommQueue* usartReceivedQueue(void);
 
 
+void usartSafeTransmit(uint8_t data);
+
+
 void usartSendText(const __memx char* text, uint8_t size, bool dynamic);
 void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic);
 

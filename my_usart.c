@@ -22,16 +22,24 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
-static inline void clearUsartTXFlag(void){
-	UCSR0A|=(1<<TXC0);
+void usartSafeTransmit(uint8_t data) {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		UCSR0B&=~(1<<TXCIE0);
+		while (!(UCSR0A & (1<<UDRE0)));
+		UDR0 = data;
+		while (!(UCSR0A & (1<<TXC0)));
+		UCSR0A|=1<<TXC0;
+		UCSR0B|=(1<<TXCIE0);
+	}
 }
 
 ISR(USART_TX_vect,ISR_NOBLOCK){
 	static bool busy=false;
-
-	if (busy)
-		return;
-	busy=true;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (busy)
+			return;
+		busy=true;
+	}
 	static bool completedTransmission=true;
 	static uint16_t marker=0;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
@@ -56,24 +64,14 @@ ISR(USART_TX_vect,ISR_NOBLOCK){
 				else
 					completedTransmission=true;
 			}
-			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-				usartTransmit('b');
-				usartTransmit('\n');
-				clearUsartTXFlag();
-			}
 		}
 		busy=false;
-
 	}
-	if (completedTransmission && (!usartToSendQueue()->isEmpty)){
-		usartTransmit('c');
-		usartTransmit('\n');
-		clearUsartTXFlag();
+	if (completedTransmission && (!usartToSendQueue()->isEmpty))
 		USART_TX_vect();
-	}
 }
 
-ISR(USART_RX_vect,ISR_NOBLOCK){
+ISR(USART_RX_vect){
 	static bool completedTransmission=true;
 	static uint16_t marker;
 	static UsartPackage received;

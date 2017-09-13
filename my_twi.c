@@ -178,9 +178,11 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 
 ISR(TWI_vect,ISR_NOBLOCK){
 	static bool busy=false;
-	if (busy)
-		return;
-	busy=true;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (busy)
+			return;
+		busy=true;
+	}
 	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		TwiPackage* order=NULL;
