@@ -1,6 +1,13 @@
 #include "my_twi.h"
 
 
+
+const uint32_t TWI_FREQ=100000;
+const uint8_t TWI_STD_TTL=20;
+
+
+
+
 CommQueue* twiMasterQueue(void){
 	static CommQueue twiMasterQueue={NULL,NULL,true,0};
 	return &twiMasterQueue;
@@ -83,7 +90,6 @@ static inline void twiStartAction(TwiPackage* order,uint8_t twiStatusReg){
 		}
 		break;
 	default:
-
 		order->control=TWI_ERROR;
 	}
 }
@@ -94,6 +100,7 @@ static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
 	case 0x18:
 		if (order->size>0){
 			order->control=TWI_DATA;
+			order->ttl=TWI_STD_TTL;
 			twiDataSend(*(order->data),true);
 		}
 		else {
@@ -121,6 +128,7 @@ static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
 				*((uint8_t*)order->data)=twiDataReceive(false);
 			else
 				*((uint8_t*)order->data)=twiDataReceive(true);
+			order->marker++;
 		}
 		break;
 	case 0x48:
@@ -136,32 +144,29 @@ static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
 }
 
 static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
-	static uint8_t marker=1;
 	switch(twiStatusReg){
 	case 0x28:
-		if (order->size==marker){
+		if (order->size==order->marker){
 			order->control=TWI_STOP;
-			marker=1;
 			twiStop(true);
 		}
 		else {
-			twiDataSend(*(order->data+marker),false);
-			marker++;
+			twiDataSend(*(order->data+order->marker),false);
+			order->marker++;
 		}
 		break;
 	case 0x30:
 		order->control=TWI_REP_DATA;
-		twiDataSend(*(order->data+marker-1),true);
+		twiDataSend(*(order->data+order->marker-1),true);
 		break;
 	case 0x50:
-		if (order->size+1==marker)
-			*((uint8_t*)order->data+marker)=twiDataReceive(false);
+		if (order->size+1==order->marker)
+			*((uint8_t*)order->data+order->marker)=twiDataReceive(false);
 		else
-			*((uint8_t*)order->data+marker)=twiDataReceive(true);
-		marker++;
+			*((uint8_t*)order->data+order->marker)=twiDataReceive(true);
+		order->marker++;
 		break;
 	case 0x58:
-		marker=1;
 		twiStop(true);
 		break;
 	case 0x38:
@@ -172,39 +177,39 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 
 
 ISR(TWI_vect,ISR_NOBLOCK){
-	static bool orderDone=true;
-	static TwiPackage* order=NULL;
-	static uint8_t counter=0;
+	static bool busy=false;
+	if (busy)
+		return;
+	busy=true;
 	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		if (!(TWCR&1<<TWEN))
-			return;
+		TwiPackage* order=NULL;
 		uint8_t twiStatusReg=TWSR & (0b11111000);
+		if (!(TWCR&1<<TWEN)){
+			busy=false;
+			return;
+		}
 		if (twiMasterQueue()->isEmpty){
 			twiClearInt(false);
+			busy=false;
 			return;
 		}
-		if (orderDone){
-			order=&(twiMasterQueue()->head->tPackage);
-			orderDone=false;
-			order->control=TWI_START;
-			twiStart(true);
-			return;
+		order=&(twiMasterQueue()->head->tPackage);
+		if (order->ttl==0){
+			order->control=TWI_STOP;
+			twiStop(true);
 		}
 		switch(order->control){
+		case TWI_NULL:
+			order->control=TWI_START;
+			twiStart(true);
+			break;
 		case TWI_START:
 			twiStartAction(order,twiStatusReg);
 			break;
 		case TWI_REP_START:
-			if (counter==MAX_TWI_COUNT){
-				order->control=TWI_STOP;
-				counter=0;
-				twiStop(true);
-			}
-			else {
-				twiStartAction(order,twiStatusReg);
-				counter++;
-			}
+			twiStartAction(order,twiStatusReg);
+			order->ttl--;
 			break;
 		case TWI_SLAW:
 			twiSlawAction(order,twiStatusReg);
@@ -213,30 +218,24 @@ ISR(TWI_vect,ISR_NOBLOCK){
 			twiSlarAction(order,twiStatusReg);
 			break;
 		case TWI_DATA:
-			counter=0;
 			twiDataAction(order,twiStatusReg);
 			break;
 		case TWI_REP_DATA:
-			if (counter==MAX_TWI_COUNT){
-				order->control=TWI_STOP;
-				counter=0;
-				twiStop(true);
-			} else{
-				counter++;
-				twiDataAction(order,twiStatusReg);
-			}
+			twiDataAction(order,twiStatusReg);
+			order->ttl--;
 			break;
-		default:;
-
+		case TWI_ERROR:
+			order->ttl=0;
+			break;
+		default:
+			break;
 		}
-		if (order->control==TWI_STOP){
+		if (order->control==TWI_STOP)
 			orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
-			orderDone=true;
-		}
+		busy=false;
 	}
-	if (orderDone){
-		if (orderToRemove.runFunc)
-			(*orderToRemove.runFunc)(&orderToRemove);
+	if (orderToRemove.runFunc){
+		(*orderToRemove.runFunc)(&orderToRemove);
 		if (!twiMasterQueue()->isEmpty)
 			TWI_vect();
 	}
@@ -264,19 +263,19 @@ void twiOff(){
 }
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
 	TWI_vect();
 }
 void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
 }
 
 void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
 	TWI_vect();
 }
 void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
 }
 
 void twiManageOrders(){

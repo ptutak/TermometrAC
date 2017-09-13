@@ -46,6 +46,8 @@ struct TwiPackage{
 	uint8_t size;
 	uint8_t address;
 	char mode;
+	volatile uint8_t ttl;
+	volatile uint8_t marker;
 	volatile TwiControl control;
 	void (*runFunc)(TwiPackage* self);
 };

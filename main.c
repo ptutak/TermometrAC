@@ -13,11 +13,9 @@ static const uint16_t BAUD=9600;
 int main(void){
 	usartInit(BAUD);
 	DDRB=1<<PB5;
-    const char __flash * text=PSTR("Czesc\n");
-    const char __flash* msg=PSTR("Msg1\n");
     const char* received;
     uint8_t size=0;
-    usartSendText(text,7,false);
+    usartSendText(PSTR("Czesc\n"),sizeof("Czesc\n"),false);
 
     _delay_ms(5000);
     twiInit(TWI_FREQ,true);
