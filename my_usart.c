@@ -22,35 +22,58 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
-
-ISR(USART_TX_vect){
-	static bool completedTransmission=true;
-	static uint16_t marker;
-	if (!usartToSendQueue()->isEmpty){
-	    UsartPackage toSend=usartToSendQueue()->head->uPackage;
-		if (!completedTransmission){
-            marker++;
-            if (marker==toSend.size){
-                 completedTransmission=true;
-                 toSend=(dequeue(usartToSendQueue(),'u')).uPackage;
-                 if (toSend.dynamic)
-                    free((uint8_t*)toSend.data);
-             }
-             else
-		       usartTransmit(*(toSend.data+marker));
-		}
-		else{
-            completedTransmission=false;
-    		marker=0;
-            if (toSend.size>0)
-                usartTransmit(*toSend.data);
-            else
-                completedTransmission=true;
-		}
-    }
+static inline void clearUsartTXFlag(void){
+	UCSR0A|=(1<<TXC0);
 }
 
-ISR(USART_RX_vect){
+ISR(USART_TX_vect,ISR_NOBLOCK){
+	static bool busy=false;
+
+	if (busy)
+		return;
+	busy=true;
+	static bool completedTransmission=true;
+	static uint16_t marker=0;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (!usartToSendQueue()->isEmpty){
+			UsartPackage toSend=usartToSendQueue()->head->uPackage;
+			if (!completedTransmission){
+				marker++;
+				if (marker==toSend.size){
+					 completedTransmission=true;
+					 toSend=(dequeue(usartToSendQueue(),'u')).uPackage;
+					 if (toSend.dynamic)
+						free((uint8_t*)toSend.data);
+				 }
+				 else
+				   usartTransmit(*(toSend.data+marker));
+			}
+			else{
+				completedTransmission=false;
+				marker=0;
+				if (toSend.size>0)
+					usartTransmit(*toSend.data);
+				else
+					completedTransmission=true;
+			}
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+				usartTransmit('b');
+				usartTransmit('\n');
+				clearUsartTXFlag();
+			}
+		}
+		busy=false;
+
+	}
+	if (completedTransmission && (!usartToSendQueue()->isEmpty)){
+		usartTransmit('c');
+		usartTransmit('\n');
+		clearUsartTXFlag();
+		USART_TX_vect();
+	}
+}
+
+ISR(USART_RX_vect,ISR_NOBLOCK){
 	static bool completedTransmission=true;
 	static uint16_t marker;
 	static UsartPackage received;
