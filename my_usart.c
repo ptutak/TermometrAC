@@ -11,6 +11,19 @@ static inline uint8_t usartReceive(void){
 
 }
 
+void usartSafeTransmit(uint8_t data) {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		uint8_t ucsr0bBackup=UCSR0B&(1<<TXCIE0);
+		UCSR0B&=~(1<<TXCIE0);
+		while (!(UCSR0A & (1<<UDRE0)));
+		UDR0 = data;
+		while (!(UCSR0A & (1<<TXC0)));
+		UCSR0A|=1<<TXC0;
+		UCSR0B|=ucsr0bBackup;
+	}
+}
+
+
 
 CommQueue* usartToSendQueue(void){
 	static CommQueue usartToSendQueue={NULL,NULL,true,0};
@@ -22,16 +35,6 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
-void usartSafeTransmit(uint8_t data) {
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		UCSR0B&=~(1<<TXCIE0);
-		while (!(UCSR0A & (1<<UDRE0)));
-		UDR0 = data;
-		while (!(UCSR0A & (1<<TXC0)));
-		UCSR0A|=1<<TXC0;
-		UCSR0B|=(1<<TXCIE0);
-	}
-}
 
 ISR(USART_TX_vect,ISR_NOBLOCK){
 	static bool busy=false;
