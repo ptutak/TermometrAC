@@ -35,16 +35,16 @@ void waitForBSFlagFunc(TwiPackage* package){
 
 
 void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8_t data)){
+//	usartSendText(PSTR("lcdInit\n"),sizeof("lcdInit\n"),false);
+
 	if (lcd->configInitArraySize==0)
 		return;
-
-	if (!twiEnabled())
-		twiInit(TWI_FREQ,true);
 
 	uint16_t_split configData=(*splitFunction)(lcd->configInitArray[0].commandType,lcd->configInitArray[0].command);
 
 	uint8_t data[2];
 	data[0]=configData.high;
+
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		twiSendMasterDataNoInterrupt(data,1,lcd->address,NULL);
 		twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,waitForBSFlagFunc);
@@ -56,5 +56,7 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8
 			twiSendMasterDataNoInterrupt(waitForBSFlag,2,lcd->address,waitForBSFlagFunc);
 		}
 	}
+
 	twiManageOrders();
+
 }

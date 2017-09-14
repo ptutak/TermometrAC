@@ -64,8 +64,11 @@ ISR(USART_TX_vect,ISR_NOBLOCK){
 				marker=0;
 				if (toSend.size>0)
 					usartTransmit(*toSend.data);
-				else
-					completedTransmission=true;
+				else{
+					toSend=(dequeue(usartToSendQueue(),'u')).uPackage;
+					if (toSend.dynamic)
+						free((uint8_t*)toSend.data);
+				}
 			}
 		}
 		busy=false;

@@ -28,20 +28,29 @@ static inline void twiAddress(uint8_t address, char mode, bool twea){
 	switch (mode){
 	case 'w':
 	case 'W':
-		address&= ~(1);
+		usartSafeTransmit('W');
+		address&= 0b11111110;
 		break;
 	case 'r':
 	case 'R':
+		usartSafeTransmit('R');
 		address|=1;
 		break;
 	}
+	usartSafeTransmit(address);
+	usartSafeTransmit('\n');
 	TWDR=address;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
 }
 
 static inline void twiDataSend(uint8_t data, bool twea){
+	usartSafeTransmit('d');
+	usartSafeTransmit('\n');
 	TWDR=data;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
+	usartSafeTransmit('d');
+	usartSafeTransmit('d');
+	usartSafeTransmit('\n');
 }
 
 static inline uint8_t twiDataReceive(bool twea){
@@ -74,9 +83,10 @@ static inline void twiStopStart(bool twea){
 
 
 static inline void twiStartAction(TwiPackage* order,uint8_t twiStatusReg){
+	usartSafeTransmit('t');
+	usartSafeTransmit('\n');
 	switch(twiStatusReg){
 	case 0x08:
-
 	case 0x10:
 		switch(order->mode){
 		case 'W':
@@ -96,6 +106,8 @@ static inline void twiStartAction(TwiPackage* order,uint8_t twiStatusReg){
 
 
 static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
+	usartSafeTransmit('w');
+	usartSafeTransmit('\n');
 	switch(twiStatusReg){
 	case 0x18:
 		if (order->size>0){
@@ -120,6 +132,8 @@ static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
 
 
 static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
+	usartSafeTransmit('r');
+	usartSafeTransmit('\n');
 	switch (twiStatusReg){
 	case 0x40:
 		if (order->size>0){
@@ -137,13 +151,14 @@ static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
 		break;
 	case 0x38:
 	default:
-
 		order->control=TWI_ERROR;
 	}
 
 }
 
 static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
+	usartSafeTransmit('d');
+	usartSafeTransmit('\n');
 	switch(twiStatusReg){
 	case 0x28:
 		if (order->size==order->marker){
@@ -176,71 +191,79 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 }
 
 
-ISR(TWI_vect,ISR_NOBLOCK){
-	static bool busy=false;
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		if (busy)
-			return;
-		busy=true;
-	}
+
+ISR(TWI_vect){
+	static uint8_t counter=0;
+	usartSafeTransmit('c');
+	usartSafeTransmit(counter);
+	usartSafeTransmit('\n');
+	counter++;
+	TwiPackage* order=NULL;
+	uint8_t twiStatusReg=TWSR & (0b11111000);
 	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		TwiPackage* order=NULL;
-		uint8_t twiStatusReg=TWSR & (0b11111000);
-		if (!(TWCR&1<<TWEN)){
-			busy=false;
-			return;
-		}
-		if (twiMasterQueue()->isEmpty){
-			twiClearInt(false);
-			busy=false;
-			return;
-		}
-		order=&(twiMasterQueue()->head->tPackage);
-		if (order->ttl==0){
-			order->control=TWI_STOP;
-			twiStop(true);
-		}
-		switch(order->control){
-		case TWI_NULL:
-			order->control=TWI_START;
-			twiStart(true);
-			break;
-		case TWI_START:
-			twiStartAction(order,twiStatusReg);
-			break;
-		case TWI_REP_START:
-			twiStartAction(order,twiStatusReg);
-			order->ttl--;
-			break;
-		case TWI_SLAW:
-			twiSlawAction(order,twiStatusReg);
-			break;
-		case TWI_SLAR:
-			twiSlarAction(order,twiStatusReg);
-			break;
-		case TWI_DATA:
-			twiDataAction(order,twiStatusReg);
-			break;
-		case TWI_REP_DATA:
-			twiDataAction(order,twiStatusReg);
-			order->ttl--;
-			break;
-		case TWI_ERROR:
-			order->ttl=0;
-			break;
-		default:
-			break;
-		}
-		if (order->control==TWI_STOP)
-			orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
-		busy=false;
+	if (!(TWCR&1<<TWEN)){
+		return;
 	}
+	if (twiMasterQueue()->isEmpty){
+		twiClearInt(false);
+		return;
+	}
+	order=&(twiMasterQueue()->head->tPackage);
+	if (order->ttl==0){
+		order->control=TWI_STOP;
+		twiStop(true);
+	}
+	usartSafeTransmit(order->ttl);
+	usartSafeTransmit('\n');
+	usartSafeTransmit(order->control);
+	usartSafeTransmit('\n');
+	usartSafeTransmit(order->size);
+	usartSafeTransmit('\n');
+	usartSafeTransmit(order->marker);
+	usartSafeTransmit('\n');
+
+	switch(order->control){
+	case TWI_NULL:
+		order->control=TWI_START;
+		twiStart(true);
+		break;
+	case TWI_START:
+		twiStartAction(order,twiStatusReg);
+		break;
+	case TWI_REP_START:
+		twiStartAction(order,twiStatusReg);
+		order->ttl--;
+		break;
+	case TWI_SLAW:
+		twiSlawAction(order,twiStatusReg);
+		break;
+	case TWI_SLAR:
+		twiSlarAction(order,twiStatusReg);
+		break;
+	case TWI_DATA:
+		twiDataAction(order,twiStatusReg);
+		break;
+	case TWI_REP_DATA:
+		twiDataAction(order,twiStatusReg);
+		order->ttl--;
+		break;
+	case TWI_ERROR:
+		order->ttl=0;
+		break;
+	default:
+		break;
+	}
+	if (order->control==TWI_STOP)
+		orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
+	usartSafeTransmit('k');
+	usartSafeTransmit('\n');
+
 	if (orderToRemove.runFunc){
 		(*orderToRemove.runFunc)(&orderToRemove);
 		if (!twiMasterQueue()->isEmpty)
 			TWI_vect();
 	}
+
 }
 
 
@@ -253,9 +276,9 @@ void twiInit(uint32_t freq, bool twea){
 		twbr/=4;
 		prescaler++;
 	}
-	TWSR&=0;
+	TWSR&=(0b11111000);
 	TWSR|=prescaler;
-	TWBR=twbr;
+	TWBR=(uint8_t)twbr;
 }
 
 void twiOff(){

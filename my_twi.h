@@ -10,8 +10,6 @@
 extern const uint32_t TWI_FREQ;
 extern const uint8_t TWI_STD_TTL;
 
-bool twiEnabled(void);
-
 CommQueue* twiMasterQueue(void);
 
 
