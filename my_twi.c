@@ -253,17 +253,17 @@ ISR(TWI_vect){
 	default:
 		break;
 	}
-	if (order->control==TWI_STOP)
-		orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
-	usartSafeTransmit('k');
-	usartSafeTransmit('\n');
+	if (order->control==TWI_STOP){
 
+		orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
+	}
 	if (orderToRemove.runFunc){
 		(*orderToRemove.runFunc)(&orderToRemove);
 		if (!twiMasterQueue()->isEmpty)
 			TWI_vect();
 	}
-
+	usartSafeTransmit('k');
+	usartSafeTransmit('\n');
 }
 
 
