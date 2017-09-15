@@ -113,7 +113,6 @@ int main(void){
             received=usartGetText();
             while(*(received+size))
                 size++;
-            size++;
             usartSendText(received,size,true);
             size=0; 
         }
