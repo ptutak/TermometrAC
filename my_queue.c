@@ -2,19 +2,12 @@
 
 
 
-void queue(CommQueue* queue, void* package, char type){
+void queue(CommQueue* queue, Package* package){
     if (queue==NULL)
         return;
 	CommNode* tmpNode=malloc(sizeof(CommNode));
 	tmpNode->next=NULL;
-	switch(type){
-	case 'u':
-		tmpNode->uPackage=*((UsartPackage*)package);
-		break;
-	case 't':
-		tmpNode->tPackage=*((TwiPackage*)package);
-		break;
-	}
+	tmpNode->package=*package;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		if (queue->head==NULL){
 			queue->head=tmpNode;
@@ -32,14 +25,9 @@ void queue(CommQueue* queue, void* package, char type){
 
 
 
-Package dequeue(CommQueue* queue,char type){
+Package dequeue(CommQueue* queue){
     if (queue==NULL || queue->head==NULL)
-    	switch(type){
-    	case 'u':
-    	case 't':
-    	default:
-    		return NULL_PACKAGE;
-    	}
+    	return NULL_PACKAGE;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     	CommNode* tmpNode=queue->head;
     	queue->head=queue->head->next;
@@ -48,15 +36,7 @@ Package dequeue(CommQueue* queue,char type){
     		queue->tail=NULL;
     		queue->isEmpty=true;
     	}
-    	Package retPackage;
-    	switch(type){
-    	case 'u':
-    		retPackage.uPackage=tmpNode->uPackage;
-    		break;
-    	case 't':
-    		retPackage.tPackage=tmpNode->tPackage;
-    		break;
-    	}
+    	Package retPackage=tmpNode->package;
     	free(tmpNode);
     	queue->counter--;
     	return retPackage;
@@ -64,19 +44,12 @@ Package dequeue(CommQueue* queue,char type){
     return NULL_PACKAGE;
 }
 
-void insert(CommQueue* queue, void* package, char type, uint16_t index){
+void insert(CommQueue* queue, Package* package, uint16_t index){
 	if (queue==NULL || index>queue->counter)
 		return;
 	CommNode* tmpNode=malloc(sizeof(CommNode));
 	tmpNode->next=NULL;
-	switch(type){
-	case 'u':
-		tmpNode->uPackage=*((UsartPackage*)package);
-		break;
-	case 't':
-		tmpNode->tPackage=*((TwiPackage*)package);
-		break;
-	}
+	tmpNode->package=*package;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		if (index==0){
 			if (queue->head!=NULL)

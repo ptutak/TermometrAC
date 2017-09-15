@@ -41,6 +41,11 @@ static inline void twiAddress(uint8_t address, char mode, bool twea){
 	usartSafeTransmit('\n');
 	TWDR=address;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
+	usartSafeTransmit('a');
+	usartSafeTransmit('a');
+	usartSafeTransmit('a');
+	usartSafeTransmit('\n');
+
 }
 
 static inline void twiDataSend(uint8_t data, bool twea){
@@ -65,6 +70,7 @@ static inline void twiStop(bool twea){
 static inline void twiClearInt(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
 }
+
 /*
 static inline void twiAck(){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWEA;
@@ -208,7 +214,7 @@ ISR(TWI_vect){
 		twiClearInt(false);
 		return;
 	}
-	order=&(twiMasterQueue()->head->tPackage);
+	order=&(twiMasterQueue()->head->package.tPackage);
 	if (order->ttl==0){
 		order->control=TWI_STOP;
 		twiStop(true);
@@ -254,9 +260,13 @@ ISR(TWI_vect){
 		break;
 	}
 	if (order->control==TWI_STOP)
-		orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
+		orderToRemove=dequeue(twiMasterQueue()).tPackage;
 
 	if (orderToRemove.runFunc){
+		usartSafeTransmit('k');
+		usartSafeTransmit('k');
+		usartSafeTransmit('\n');
+
 		(*orderToRemove.runFunc)(&orderToRemove);
 		if (!twiMasterQueue()->isEmpty)
 			TWI_vect();
@@ -287,19 +297,19 @@ void twiOff(){
 }
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
 	TWI_vect();
 }
 void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
 }
 
 void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
 	TWI_vect();
 }
 void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
-	queue(twiMasterQueue(),(void*)&((TwiPackage){data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}),'t');
+	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
 }
 
 void twiManageOrders(){

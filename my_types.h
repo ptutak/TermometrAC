@@ -74,10 +74,7 @@ typedef struct CommNode CommNode;
 
 struct CommNode{
 	CommNode* volatile next;
-	union{
-			UsartPackage uPackage;
-			TwiPackage tPackage;
-	};
+	Package package;
 };
 
 typedef struct {

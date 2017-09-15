@@ -1,7 +1,7 @@
 #include "lcd_control.h"
 
 
-const __flash uint8_t waitForBSFlag[2]={0b11110010,0b11110010};
+
 
 const __flash LCDCommandS LCD_CONFIG_INIT_2X16S[5]={
 		{LCD_COMMAND,LCD_F_SET_4_BIT_2_LINE_8_FONT},
@@ -22,16 +22,22 @@ uint16_t_split splitDataPCF8574_DataHigh(LCDCommandType commandType, uint8_t dat
 }
 
 
-TwiPackage* waitForBSFlagPackage(uint8_t address){
-	static TwiPackage package;
-	package=(TwiPackage){waitForBSFlag,2,address,'R',TWI_STD_TTL,0,TWI_NULL,waitForBSFlagFunc};
+
+
+const __flash uint8_t waitForBSFlag[2]={0b11110010,0b11110010};
+
+Package* waitForBSFlagPackage(uint8_t address){
+	static Package package;
+	package=(Package){.tPackage={waitForBSFlag,2,address,'R',TWI_STD_TTL,0,TWI_NULL,waitForBSFlagFunc}};
 	return &package;
 }
 
 void waitForBSFlagFunc(TwiPackage* package){
 	if (*(package->data)&0b00001000)
-		insert(twiMasterQueue(),(void*)waitForBSFlagPackage(package->address),'t',0);
+		insert(twiMasterQueue(),waitForBSFlagPackage(package->address),0);
 }
+
+
 
 
 void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8_t data)){

@@ -47,12 +47,12 @@ ISR(USART_TX_vect,ISR_NOBLOCK){
 	static uint16_t marker=0;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		if (!usartToSendQueue()->isEmpty){
-			UsartPackage toSend=usartToSendQueue()->head->uPackage;
+			UsartPackage toSend=usartToSendQueue()->head->package.uPackage;
 			if (!completedTransmission){
 				marker++;
 				if (marker==toSend.size){
 					 completedTransmission=true;
-					 toSend=(dequeue(usartToSendQueue(),'u')).uPackage;
+					 toSend=(dequeue(usartToSendQueue())).uPackage;
 					 if (toSend.dynamic)
 						free((uint8_t*)toSend.data);
 				 }
@@ -65,7 +65,7 @@ ISR(USART_TX_vect,ISR_NOBLOCK){
 				if (toSend.size>0)
 					usartTransmit(*toSend.data);
 				else{
-					toSend=(dequeue(usartToSendQueue(),'u')).uPackage;
+					toSend=(dequeue(usartToSendQueue())).uPackage;
 					if (toSend.dynamic)
 						free((uint8_t*)toSend.data);
 				}
@@ -87,7 +87,7 @@ ISR(USART_RX_vect){
         marker++;
 		if(marker>=received.size){
 			completedTransmission=true;
-            queue(usartReceivedQueue(),(void*)&received,'u');
+            queue(usartReceivedQueue(),&(Package){.uPackage=received});
         }
 	}
 	else {
@@ -102,21 +102,21 @@ ISR(USART_RX_vect){
 }
 
 void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
-	queue(usartToSendQueue(),(void*)&((UsartPackage){(const __memx uint8_t*)text,size-1,dynamic}),'u');
+	queue(usartToSendQueue(),&(Package){.uPackage={(const __memx uint8_t*)text,size,dynamic}});
 	USART_TX_vect();
 }
 
 void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic){
-	queue(usartToSendQueue(),(void*)&((UsartPackage){data,size,dynamic}),'u');
+	queue(usartToSendQueue(),&(Package){.uPackage={data,size,dynamic}});
 	USART_TX_vect();
 }
 
 const char* usartGetText(){
-	return (const char*)(dequeue(usartReceivedQueue(),'u')).uPackage.data;
+	return (const char*)(dequeue(usartReceivedQueue())).uPackage.data;
 }
 
 UsartPackage usartGetData(void){
-	return dequeue(usartReceivedQueue(),'u').uPackage;
+	return dequeue(usartReceivedQueue()).uPackage;
 }
 
 void usartInit(uint16_t baud){
