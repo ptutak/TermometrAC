@@ -13,7 +13,7 @@ void addOsFunc(void (*runFunc)(OsPackage* package),const __memx void* data, uint
 void remOsFunc(uint8_t index){
 	OsPackage removed=remove(osQueue(),index).oPackage;
 	if (removed.dynamic)
-		free(removed.data);
+		free((void*)removed.data);
 }
 void manageOsQueue(void){
 	CommNode* order=osQueue()->head;

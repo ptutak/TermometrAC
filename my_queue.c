@@ -31,7 +31,6 @@ Package dequeue(CommQueue* queue){
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     	CommNode* tmpNode=queue->head;
     	queue->head=queue->head->next;
-
     	if (queue->head==NULL){
     		queue->tail=NULL;
     		queue->isEmpty=true;
