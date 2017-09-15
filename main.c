@@ -13,7 +13,6 @@ static const uint16_t BAUD=9600;
 
 
 
-
 static inline void twiStart(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWSTA|1<<TWEA;
 }

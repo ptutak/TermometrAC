@@ -60,7 +60,20 @@ void freeData(TwiPackage* package);
 
 
 
+typedef struct OsPackage OsPackage;
+
+struct OsPackage{
+	void (*runFunc)(OsPackage* self);
+	const __memx void* data;
+	uint8_t size;
+};
+
+
+
+
+
 typedef union{
+	OsPackage oPackage;
 	UsartPackage uPackage;
 	TwiPackage tPackage;
 }Package;
@@ -73,8 +86,8 @@ extern const Package NULL_PACKAGE;
 typedef struct CommNode CommNode;
 
 struct CommNode{
-	CommNode* volatile next;
 	Package package;
+	CommNode* volatile next;
 };
 
 typedef struct {
