@@ -66,6 +66,7 @@ struct OsPackage{
 	void (*runFunc)(OsPackage* self);
 	const __memx void* data;
 	uint8_t size;
+	bool dynamic;
 };
 
 
@@ -94,7 +95,7 @@ typedef struct {
 	CommNode* volatile head;
 	CommNode* volatile tail;
 	volatile bool isEmpty;
-    volatile uint16_t counter;
+    volatile uint8_t counter;
 }CommQueue;
 
 

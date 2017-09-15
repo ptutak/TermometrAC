@@ -44,7 +44,7 @@ Package dequeue(CommQueue* queue){
     return NULL_PACKAGE;
 }
 
-void insert(CommQueue* queue, Package* package, uint16_t index){
+void insert(CommQueue* queue, Package* package, uint8_t index){
 	if (queue==NULL || index>queue->counter)
 		return;
 	CommNode* tmpNode=malloc(sizeof(CommNode));
@@ -76,3 +76,34 @@ void insert(CommQueue* queue, Package* package, uint16_t index){
 	}
 }
 
+Package remove(CommQueue* queue, uint8_t index){
+	if (queue==NULL || index>=queue->counter)
+		return NULL_PACKAGE;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		CommNode* tmpNode=queue->head;
+		if (index==0){
+			queue->head=queue->head->next;
+			if (queue->head==NULL){
+				queue->tail=NULL;
+				queue->isEmpty=true;
+			}
+		}
+		else{
+			CommNode* prev=queue->head;
+			index--;
+			while(index){
+				prev=prev->next;
+				index--;
+			}
+			tmpNode=prev->next;
+			prev->next=prev->next->next;
+			if (prev->next==NULL)
+				queue->tail=prev;
+		}
+		Package retPackage=tmpNode->package;
+		queue->counter--;
+		free(tmpNode);
+		return retPackage;
+	}
+	return NULL_PACKAGE;
+}
