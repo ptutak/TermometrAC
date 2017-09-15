@@ -18,6 +18,10 @@ int main(void){
 //    usartSendText(PSTR("Czesc\n"),sizeof("Czesc\n"),false);
 	usartSafeTransmit('C');
 	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
 	usartSafeTransmit('\n');
 	usartSafeTransmit('\n');
     twiInit(TWI_FREQ,true);

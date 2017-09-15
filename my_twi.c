@@ -253,10 +253,9 @@ ISR(TWI_vect){
 	default:
 		break;
 	}
-	if (order->control==TWI_STOP){
-
+	if (order->control==TWI_STOP)
 		orderToRemove=dequeue(twiMasterQueue(),'t').tPackage;
-	}
+
 	if (orderToRemove.runFunc){
 		(*orderToRemove.runFunc)(&orderToRemove);
 		if (!twiMasterQueue()->isEmpty)
