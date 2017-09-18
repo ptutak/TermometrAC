@@ -120,13 +120,17 @@ void initSystem(OsPackage* package){
     lcd.address=0x40;
     lcd.configInitArray=LCD_CONFIG_INIT_2X16S;
     lcd.configInitArraySize=LCD_CONFIG_INIT_2X16S_SIZE;
+
     lcdInit(&lcd,splitDataPCF8574_DataHigh);
 //*/
+
+    addOsFunc(osStaticQueue(),resendUsartMsg,NULL,0,false);
 
 }
 
 int main(void){
 	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
+
 	manageOsQueue(osInitQueue(),true);
     while(1){
     	manageOsQueue(osDynamicQueue(),true);
