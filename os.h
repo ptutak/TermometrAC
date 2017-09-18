@@ -5,6 +5,7 @@
 
 CommQueue* osDynamicQueue(void);
 CommQueue* osStaticQueue(void);
+CommQueue* osInitQueue(void);
 
 void addOsFunc(CommQueue* queue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic);
 

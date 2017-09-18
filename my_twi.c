@@ -20,6 +20,7 @@ bool twiEnabled(void){
 
 
 
+
 static inline void twiStart(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTA|1<<TWEA;
 }
@@ -201,6 +202,7 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 	}
 }
 
+void runTwiInterruptFunc(OsPackage* package);
 
 
 ISR(TWI_vect){
@@ -301,13 +303,16 @@ ISR(TWI_vect){
 			(*orderToRemove.runFunc)(&orderToRemove);
 		}
 		if (!twiMasterQueue()->isEmpty)
-			TWI_vect();
+			addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
 	}
 	usartSafeTransmit('k');
 	usartSafeTransmit('\n');
 }
 
 
+void runTwiInterruptFunc(OsPackage* package){
+	TWI_vect();
+}
 
 void twiInit(uint32_t freq, bool twea){
 	TWCR=1<<TWEN|1<<TWIE|twea<<TWEA;

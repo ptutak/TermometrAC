@@ -11,6 +11,11 @@ CommQueue* osDynamicQueue(void){
 	return &osDynamicQueue;
 }
 
+CommQueue* osInitQueue(void){
+	static CommQueue osInitQueue={NULL,NULL,true,0};
+	return &osInitQueue;
+}
+
 void addOsFunc(CommQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic){
 	queue(osQueue,&(Package){.oPackage={runFunc,data,size,dynamic}});
 }

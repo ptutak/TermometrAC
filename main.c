@@ -66,13 +66,24 @@ static inline void twiClearInt(bool twea){
 static inline void twiWaitForComplete() {while (!(TWCR & 1<<TWINT));};
 */
 
-int main(void){
+void resendUsartMsg(OsPackage* package){
+    static const char* received;
+    static uint8_t size=0;
+
+    if(!usartReceivedQueue()->isEmpty){
+        received=usartGetText();
+        while(*(received+size))
+            size++;
+        usartSendText(received,size,true);
+        size=0;
+    }
+    PORTB^=1<<PB5;
+    _delay_ms(500);
+}
+
+void initSystem(OsPackage* package){
 	usartInit(BAUD);
 	DDRB=1<<PB5;
-    const char* received;
-    uint8_t size=0;
-
-
 
 	usartSafeTransmit('C');
 	usartSafeTransmit('C');
@@ -89,7 +100,8 @@ int main(void){
 	usartSafeTransmit('\n');
 
 	twiInit(TWI_FREQ,true);
-/*   twiStart(false);
+/*
+	twiStart(false);
     twiWaitForComplete();
     twiAddress(0x40,'W',false);
     twiWaitForComplete();
@@ -103,8 +115,6 @@ int main(void){
    	usartSafeTransmit('H');
    	usartSafeTransmit('\n');
 
-
-
 /*/
     LCD lcd;
     lcd.address=0x40;
@@ -113,17 +123,14 @@ int main(void){
     lcdInit(&lcd,splitDataPCF8574_DataHigh);
 //*/
 
+}
 
+int main(void){
+	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
+	manageOsQueue(osInitQueue(),true);
     while(1){
-        if(!usartReceivedQueue()->isEmpty){
-            received=usartGetText();
-            while(*(received+size))
-                size++;
-            usartSendText(received,size,true);
-            size=0; 
-        }
-        PORTB^=1<<PB5;
-        _delay_ms(500);
+    	manageOsQueue(osDynamicQueue(),true);
+    	manageOsQueue(osStaticQueue(),false);
     }
 
 }

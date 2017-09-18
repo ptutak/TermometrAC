@@ -5,6 +5,7 @@
 #include "my_types.h"
 #include "my_usart.h"
 #include "my_queue.h"
+#include "os.h"
 
 
 extern const uint32_t TWI_FREQ;
