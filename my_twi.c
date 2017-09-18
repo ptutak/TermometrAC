@@ -212,7 +212,6 @@ ISR(TWI_vect){
 	usartSafeTransmit('\n');
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);
-	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
 	static char sts[3];
 	utoa(twiStatusReg,sts,16);
 	usartSafeTransmit('s');
@@ -292,15 +291,15 @@ ISR(TWI_vect){
 	default:
 		break;
 	}
-	if (order->control==TWI_STOP)
+	if (order->control==TWI_STOP){
+		TwiPackage orderToRemove=NULL_TWI_PACKAGE;
 		orderToRemove=dequeue(twiMasterQueue()).tPackage;
-
-	if (orderToRemove.runFunc){
-		usartSafeTransmit('k');
-		usartSafeTransmit('k');
-		usartSafeTransmit('\n');
-
-		(*orderToRemove.runFunc)(&orderToRemove);
+		if (orderToRemove.runFunc){
+			usartSafeTransmit('k');
+			usartSafeTransmit('k');
+			usartSafeTransmit('\n');
+			(*orderToRemove.runFunc)(&orderToRemove);
+		}
 		if (!twiMasterQueue()->isEmpty)
 			TWI_vect();
 	}

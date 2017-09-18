@@ -3,14 +3,14 @@
 #include "my_types.h"
 #include "my_queue.h"
 
-CommQueue* osQueue(void);
+CommQueue* osDynamicQueue(void);
+CommQueue* osStaticQueue(void);
 
+void addOsFunc(CommQueue* queue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic);
 
-void addOsFunc(void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic);
+void remOsFunc(CommQueue* queue,uint8_t index);
 
-void remOsFunc(uint8_t index);
-
-void manageOsQueue(void);
+void manageOsQueue(CommQueue* queue, bool dynamic);
 
 
 #endif
