@@ -10,7 +10,7 @@
 static const uint16_t BAUD=9600;
 
 
-
+/*
 
 
 static inline void twiStart(bool twea){
@@ -64,7 +64,7 @@ static inline void twiClearInt(bool twea){
 
 
 static inline void twiWaitForComplete() {while (!(TWCR & 1<<TWINT));};
-
+*/
 
 int main(void){
 	usartInit(BAUD);
@@ -80,10 +80,16 @@ int main(void){
 	usartSafeTransmit('C');
 	usartSafeTransmit('C');
 	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
+	usartSafeTransmit('C');
 	usartSafeTransmit('\n');
 
 	twiInit(TWI_FREQ,true);
-    twiStart(false);
+/*   twiStart(false);
     twiWaitForComplete();
     twiAddress(0x40,'W',false);
     twiWaitForComplete();
@@ -99,13 +105,13 @@ int main(void){
 
 
 
-/*
+/*/
     LCD lcd;
-    lcd.address=0x4E;
+    lcd.address=0x40;
     lcd.configInitArray=LCD_CONFIG_INIT_2X16S;
     lcd.configInitArraySize=LCD_CONFIG_INIT_2X16S_SIZE;
     lcdInit(&lcd,splitDataPCF8574_DataHigh);
-*/
+//*/
 
 
     while(1){

@@ -25,6 +25,9 @@ static inline void twiStart(bool twea){
 }
 
 static inline void twiAddress(uint8_t address, char mode, bool twea){
+	usartSafeTransmit('a');
+	usartSafeTransmit('d');
+	usartSafeTransmit('r');
 	switch (mode){
 	case 'w':
 	case 'W':
@@ -37,35 +40,45 @@ static inline void twiAddress(uint8_t address, char mode, bool twea){
 		address|=1;
 		break;
 	}
-	usartSafeTransmit(address);
-	usartSafeTransmit('\n');
 	TWDR=address;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
-	usartSafeTransmit('a');
-	usartSafeTransmit('a');
-	usartSafeTransmit('a');
+	usartSafeTransmit(address);
 	usartSafeTransmit('\n');
 
 }
 
 static inline void twiDataSend(uint8_t data, bool twea){
 	usartSafeTransmit('d');
-	usartSafeTransmit('\n');
+	usartSafeTransmit('a');
+	usartSafeTransmit('t');
 	TWDR=data;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
-	usartSafeTransmit('d');
-	usartSafeTransmit('d');
+	usartSafeTransmit(data);
 	usartSafeTransmit('\n');
 }
 
 static inline uint8_t twiDataReceive(bool twea){
+	usartSafeTransmit('d');
+	usartSafeTransmit('a');
+	usartSafeTransmit('t');
+	usartSafeTransmit('R');
+	usartSafeTransmit('e');
+	usartSafeTransmit('c');
+
 	uint8_t data=TWDR;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
+	usartSafeTransmit(data);
+	usartSafeTransmit('\n');
+
 	return data;
 }
 
 static inline void twiStop(bool twea){
+	usartSafeTransmit('s');
+	usartSafeTransmit('t');
+	usartSafeTransmit('o');
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO|twea<<TWEA;
+	usartSafeTransmit('\n');
 }
 static inline void twiClearInt(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
@@ -89,8 +102,6 @@ static inline void twiStopStart(bool twea){
 
 
 static inline void twiStartAction(TwiPackage* order,uint8_t twiStatusReg){
-	usartSafeTransmit('t');
-	usartSafeTransmit('\n');
 	switch(twiStatusReg){
 	case 0x08:
 	case 0x10:
@@ -112,8 +123,6 @@ static inline void twiStartAction(TwiPackage* order,uint8_t twiStatusReg){
 
 
 static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
-	usartSafeTransmit('w');
-	usartSafeTransmit('\n');
 	switch(twiStatusReg){
 	case 0x18:
 		if (order->size>0){
@@ -138,8 +147,6 @@ static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
 
 
 static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
-	usartSafeTransmit('r');
-	usartSafeTransmit('\n');
 	switch (twiStatusReg){
 	case 0x40:
 		if (order->size>0){
@@ -163,8 +170,6 @@ static inline void twiSlarAction(TwiPackage* order, uint8_t twiStatusReg){
 }
 
 static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
-	usartSafeTransmit('d');
-	usartSafeTransmit('\n');
 	switch(twiStatusReg){
 	case 0x28:
 		if (order->size==order->marker){
@@ -200,13 +205,25 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 
 ISR(TWI_vect){
 	static uint8_t counter=0;
+	counter++;
+
 	usartSafeTransmit('c');
 	usartSafeTransmit(counter);
 	usartSafeTransmit('\n');
-	counter++;
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);
 	TwiPackage orderToRemove=NULL_TWI_PACKAGE;
+	static char sts[3];
+	utoa(twiStatusReg,sts,16);
+	usartSafeTransmit('s');
+	usartSafeTransmit('t');
+	usartSafeTransmit('s');
+	usartSafeTransmit('0');
+	usartSafeTransmit('x');
+	usartSafeTransmit((uint8_t)sts[0]);
+	usartSafeTransmit((uint8_t)sts[1]);
+	usartSafeTransmit('\n');
+
 	if (!(TWCR&1<<TWEN)){
 		return;
 	}
@@ -219,14 +236,30 @@ ISR(TWI_vect){
 		order->control=TWI_STOP;
 		twiStop(true);
 	}
+	usartSafeTransmit('t');
+	usartSafeTransmit('t');
+	usartSafeTransmit('l');
 	usartSafeTransmit(order->ttl);
 	usartSafeTransmit('\n');
+
+	usartSafeTransmit('c');
+	usartSafeTransmit('o');
+	usartSafeTransmit('n');
 	usartSafeTransmit(order->control);
 	usartSafeTransmit('\n');
+
+	usartSafeTransmit('s');
+	usartSafeTransmit('i');
+	usartSafeTransmit('z');
 	usartSafeTransmit(order->size);
 	usartSafeTransmit('\n');
+
+	usartSafeTransmit('m');
+	usartSafeTransmit('a');
+	usartSafeTransmit('r');
 	usartSafeTransmit(order->marker);
 	usartSafeTransmit('\n');
+
 
 	switch(order->control){
 	case TWI_NULL:
