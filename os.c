@@ -16,6 +16,16 @@ CommQueue* osInitQueue(void){
 	return &osInitQueue;
 }
 
+PriorityQueue* osStaticPriorQueue(void){
+	static PriorityQueue osPriorStaticQueue={NULL,NULL,true,0};
+	return &osPriorStaticQueue;
+}
+
+PriorityQueue* osDynamicPriorQueue(void){
+	static PriorityQueue osPriorDynamicQueue={NULL,NULL,true,0};
+	return &osPriorDynamicQueue;
+}
+
 void addOsFunc(CommQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic){
 	queue(osQueue,&(Package){.oPackage={runFunc,data,size,dynamic}});
 }
@@ -25,6 +35,17 @@ void remOsFunc(CommQueue* osQueue,uint8_t index){
 	if (removed.dynamic)
 		free((void*)removed.data);
 }
+
+void addOsPriorFunc(PriorityQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic, uint8_t priority){
+	queuePrior(osQueue,&(Package){.oPackage={runFunc,data,size,dynamic}},priority);
+}
+
+void remOsPriorFunc(PriorityQueue* osQueue,uint8_t priority){
+	OsPackage removed=removePrior(osQueue,priority).oPackage;
+	if (removed.dynamic)
+		free((void*)removed.data);
+}
+
 void manageOsQueue(CommQueue* osQueue,bool dynamic){
 	CommNode* order=osQueue->head;
 	while (order){
@@ -36,4 +57,19 @@ void manageOsQueue(CommQueue* osQueue,bool dynamic){
 				free((uint8_t*)package.data);
 		}
 	}
+}
+
+void manageOsPriorQueue(PriorityQueue* osQueue, bool dynamic){
+	static uint8_t priority=255;
+	PriorityNode* order=osQueue->head;
+	while (order && order->priority>=priority){
+		(*order->package.oPackage.runFunc)(&order->package.oPackage);
+		order=order->next;
+		if (dynamic){
+			OsPackage package=dequeuePrior(osQueue).oPackage;
+			if (package.dynamic)
+				free((uint8_t*)package.data);
+		}
+	}
+	priority--;
 }

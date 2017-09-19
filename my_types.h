@@ -102,4 +102,21 @@ typedef struct {
 
 
 
+typedef struct PriorityNode PriorityNode;
+
+struct PriorityNode{
+	Package package;
+	uint8_t priority;
+	PriorityNode* next;
+};
+
+typedef struct {
+	PriorityNode* volatile head;
+	PriorityNode* volatile tail;
+	volatile bool isEmpty;
+	volatile uint8_t counter;
+}PriorityQueue;
+
+
+
 #endif

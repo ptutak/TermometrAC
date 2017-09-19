@@ -106,3 +106,89 @@ Package remove(CommQueue* queue, uint8_t index){
 	}
 	return NULL_PACKAGE;
 }
+
+
+Package removePrior(PriorityQueue* queue, uint8_t priority){
+	if (queue==NULL || queue->tail==NULL || priority<queue->tail->priority)
+		return NULL_PACKAGE;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		PriorityNode* tmpNode=queue->head;
+		if (priority>=queue->head->priority){
+			queue->head=queue->head->next;
+			if (queue->head==NULL){
+				queue->tail=NULL;
+				queue->isEmpty=true;
+			}
+		}
+		else{
+			PriorityNode* prev=queue->head;
+			while(prev->next && prev->next->priority>priority)
+					prev=prev->next;
+			tmpNode=prev->next;
+			prev->next=prev->next->next;
+			if (prev->next==NULL)
+				queue->tail=prev;
+		}
+		Package retPackage=tmpNode->package;
+		queue->counter--;
+		free(tmpNode);
+		return retPackage;
+	}
+	return NULL_PACKAGE;
+}
+
+
+
+void queuePrior(PriorityQueue* queue, Package* package, uint8_t priority){
+    if (queue==NULL)
+        return;
+	PriorityNode* tmpNode=malloc(sizeof(PriorityNode));
+	tmpNode->next=NULL;
+	tmpNode->priority=priority;
+	tmpNode->package=*package;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		if (queue->head==NULL){
+			queue->head=tmpNode;
+			queue->tail=tmpNode;
+			queue->isEmpty=false;
+		}
+		else{
+			if (queue->head->priority<priority){
+				tmpNode->next=queue->head;
+				queue->head=tmpNode;
+			}
+			else {
+				PriorityNode* prev=queue->head;
+				while(prev->next!=NULL && prev->next->priority>=priority)
+					prev=prev->next;
+				tmpNode->next=prev->next;
+				prev->next=tmpNode;
+				if (prev==queue->tail)
+					queue->tail=tmpNode;
+			}
+		}
+		queue->counter++;
+	}
+}
+
+
+
+
+Package dequeuePrior(PriorityQueue* queue){
+    if (queue==NULL || queue->head==NULL)
+    	return NULL_PACKAGE;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+    	PriorityNode* tmpNode=queue->head;
+    	queue->head=queue->head->next;
+    	if (queue->head==NULL){
+    		queue->tail=NULL;
+    		queue->isEmpty=true;
+    	}
+    	Package retPackage=tmpNode->package;
+    	free(tmpNode);
+    	queue->counter--;
+    	return retPackage;
+    }
+    return NULL_PACKAGE;
+}
+

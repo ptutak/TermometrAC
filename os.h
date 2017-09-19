@@ -7,11 +7,16 @@ CommQueue* osDynamicQueue(void);
 CommQueue* osStaticQueue(void);
 CommQueue* osInitQueue(void);
 
-void addOsFunc(CommQueue* queue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic);
+PriorityQueue* osDynamicPriorQueue(void);
+PriorityQueue* osStaticPriorQueue(void);
 
-void remOsFunc(CommQueue* queue,uint8_t index);
+void addOsFunc(CommQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic);
+void addOsPriorFunc(PriorityQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic, uint8_t priority);
 
-void manageOsQueue(CommQueue* queue, bool dynamic);
+void remOsFunc(CommQueue* osQueue,uint8_t index);
+void remOsPriorFunc(PriorityQueue* osQueue,uint8_t priority);
 
+void manageOsQueue(CommQueue* osQueue, bool dynamic);
+void manageOsPriorQueue(PriorityQueue* osQueue, bool dynamic);
 
 #endif
