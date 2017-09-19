@@ -46,30 +46,41 @@ void remOsPriorFunc(PriorityQueue* osQueue,uint8_t priority){
 		free((void*)removed.data);
 }
 
-void manageOsQueue(CommQueue* osQueue,bool dynamic){
+void manageOsDynamicQueue(CommQueue* osQueue){
 	CommNode* order=osQueue->head;
 	while (order){
 		(*order->package.oPackage.runFunc)(&order->package.oPackage);
 		order=order->next;
-		if (dynamic){
-			OsPackage package=dequeue(osQueue).oPackage;
-			if (package.dynamic)
-				free((uint8_t*)package.data);
-		}
+		OsPackage package=dequeue(osQueue).oPackage;
+		if (package.dynamic)
+			free((uint8_t*)package.data);
+	}
+}
+void manageOsDynamicPriorQueue(PriorityQueue* osQueue){
+	PriorityNode* order=osQueue->head;
+	while (order){
+		(*order->package.oPackage.runFunc)(&order->package.oPackage);
+		order=order->next;
+		OsPackage package=dequeue(osQueue).oPackage;
+		if (package.dynamic)
+			free((uint8_t*)package.data);
+	}
+}
+void manageOsQueue(CommQueue* osQueue){
+	CommNode* order=osQueue->head;
+	while (order){
+		(*order->package.oPackage.runFunc)(&order->package.oPackage);
+		order=order->next;
 	}
 }
 
-void manageOsPriorQueue(PriorityQueue* osQueue, bool dynamic){
+void manageOsPriorQueue(PriorityQueue* osQueue){
 	static uint8_t priority=255;
 	PriorityNode* order=osQueue->head;
-	while (order && order->priority>=priority){
-		(*order->package.oPackage.runFunc)(&order->package.oPackage);
+	while (order && order->priority!=0){
+		if (priority%(order->priority)==0)
+			(*order->package.oPackage.runFunc)(&order->package.oPackage);
 		order=order->next;
-		if (dynamic){
-			OsPackage package=dequeuePrior(osQueue).oPackage;
-			if (package.dynamic)
-				free((uint8_t*)package.data);
-		}
 	}
 	priority--;
 }

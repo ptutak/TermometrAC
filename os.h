@@ -16,7 +16,9 @@ void addOsPriorFunc(PriorityQueue* osQueue,void (*runFunc)(OsPackage* package),c
 void remOsFunc(CommQueue* osQueue,uint8_t index);
 void remOsPriorFunc(PriorityQueue* osQueue,uint8_t priority);
 
-void manageOsQueue(CommQueue* osQueue, bool dynamic);
-void manageOsPriorQueue(PriorityQueue* osQueue, bool dynamic);
+void manageOsDynamicQueue(CommQueue* osQueue);
+void manageOsDynamicPriorQueue(PriorityQueue* osQueue);
+void manageOsQueue(CommQueue* osQueue);
+void manageOsPriorQueue(PriorityQueue* osQueue);
 
 #endif

@@ -58,12 +58,12 @@ void initSystem(OsPackage* package){
 int main(void){
 	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
 
-	manageOsQueue(osInitQueue(),true);
+	manageOsDynamicQueue(osInitQueue());
     while(1){
-    	manageOsQueue(osDynamicQueue(),true);
-    	manageOsQueue(osStaticQueue(),false);
-    	manageOsPriorQueue(osDynamicPriorQueue(),true);
-    	manageOsPriorQueue(osStaticPriorQueue(),false);
+    	manageOsDynamicQueue(osDynamicQueue());
+    	manageOsQueue(osStaticQueue());
+    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
+    	manageOsPriorQueue(osStaticPriorQueue());
     }
 
 }
