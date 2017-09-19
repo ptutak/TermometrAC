@@ -26,26 +26,18 @@ static inline void twiStart(bool twea){
 }
 
 static inline void twiAddress(uint8_t address, char mode, bool twea){
-	usartSafeTransmit('a');
-	usartSafeTransmit('d');
-	usartSafeTransmit('r');
 	switch (mode){
 	case 'w':
 	case 'W':
-		usartSafeTransmit('W');
 		address&= 0b11111110;
 		break;
 	case 'r':
 	case 'R':
-		usartSafeTransmit('R');
 		address|=1;
 		break;
 	}
 	TWDR=address;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
-	usartSafeTransmit(address);
-	usartSafeTransmit('\n');
-
 }
 
 static inline void twiDataSend(uint8_t data, bool twea){
@@ -130,6 +122,7 @@ static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
 			order->control=TWI_DATA;
 			order->ttl=TWI_STD_TTL;
 			twiDataSend(*(order->data),true);
+			order->marker++;
 		}
 		else {
 			order->control=TWI_STOP;
@@ -141,7 +134,6 @@ static inline void twiSlawAction(TwiPackage* order, uint8_t twiStatusReg){
 		twiStart(true);
 		break;
 	default:
-
 		order->control=TWI_ERROR;
 	}
 }
@@ -206,12 +198,6 @@ void runTwiInterruptFunc(OsPackage* package);
 
 
 ISR(TWI_vect){
-	static uint8_t counter=0;
-	counter++;
-
-	usartSafeTransmit('c');
-	usartSafeTransmit(counter);
-	usartSafeTransmit('\n');
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);
 	static char sts[3];
@@ -219,6 +205,7 @@ ISR(TWI_vect){
 	usartSafeTransmit('s');
 	usartSafeTransmit('t');
 	usartSafeTransmit('s');
+	usartSafeTransmit(' ');
 	usartSafeTransmit('0');
 	usartSafeTransmit('x');
 	usartSafeTransmit((uint8_t)sts[0]);
@@ -237,30 +224,12 @@ ISR(TWI_vect){
 		order->control=TWI_STOP;
 		twiStop(true);
 	}
-	usartSafeTransmit('t');
-	usartSafeTransmit('t');
-	usartSafeTransmit('l');
-	usartSafeTransmit(order->ttl);
-	usartSafeTransmit('\n');
 
 	usartSafeTransmit('c');
 	usartSafeTransmit('o');
 	usartSafeTransmit('n');
 	usartSafeTransmit(order->control);
 	usartSafeTransmit('\n');
-
-	usartSafeTransmit('s');
-	usartSafeTransmit('i');
-	usartSafeTransmit('z');
-	usartSafeTransmit(order->size);
-	usartSafeTransmit('\n');
-
-	usartSafeTransmit('m');
-	usartSafeTransmit('a');
-	usartSafeTransmit('r');
-	usartSafeTransmit(order->marker);
-	usartSafeTransmit('\n');
-
 
 	switch(order->control){
 	case TWI_NULL:
@@ -335,7 +304,7 @@ void twiOff(){
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
-	TWI_vect();
+	addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
 }
 void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
@@ -343,12 +312,8 @@ void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size, uint
 
 void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
-	TWI_vect();
+	addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
 }
 void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
-}
-
-void twiManageOrders(){
-	TWI_vect();
 }

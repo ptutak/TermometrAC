@@ -80,6 +80,8 @@ void manageOsDynamicPriorQueue(PriorityQueue* osQueue){
 void manageOsPriorQueue(PriorityQueue* osQueue){
 	static uint8_t priority=0;
 	PriorityNode* order=osQueue->head;
+	while (order && order->priority==0)
+		order=order->next;
 	while (order){
 		if (priority%(order->priority)==0)
 			(*order->package.oPackage.runFunc)(&order->package.oPackage);

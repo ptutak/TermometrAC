@@ -52,7 +52,7 @@ void initSystem(OsPackage* package){
     lcdInit(&lcd,splitDataPCF8574_DataHigh);
 
     addOsFunc(osStaticQueue(),resendUsartMsg,NULL,0,false);
-
+    _delay_ms(50);
 }
 
 int main(void){

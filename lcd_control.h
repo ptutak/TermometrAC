@@ -5,6 +5,32 @@
 #include "my_twi.h"
 #include "os.h"
 
+//byte structure: 0b0,0,0,0,bt,e,rw,rs
+typedef enum{
+	LCD_COMMAND=0x00,
+
+	LCD_WRITE_CG_OR_DDR=0x01,
+
+	LCD_READ_BS_FLAG_AND_ADDR=0x02,
+
+	LCD_READ_CG_OR_DDR=0x03,
+
+	LCD_WRITE_CG_OR_DDR_E=0x05,
+
+	LCD_READ_BS_FLAG_AND_ADDR_E=0x06,
+
+	LCD_READ_CG_OR_DDR_E=0x07,
+
+	LCD_COMMAND_BT=0x08,
+
+	LCD_WRITE_CG_OR_DDR_BT=0x09,
+	LCD_READ_CG_OR_DDR_BT=0x0B,
+
+	LCD_WRITE_CG_OR_DDR_E_BT=0x0D,
+	LCD_READ_CG_OR_DDR_E_BT=0x0F,
+}LCDCommandType;
+
+
 typedef enum{
 	LCD_NULL=0x00,
 
@@ -43,31 +69,6 @@ typedef enum{
 }LCDCommand;
 
 
-//byte structure: 0b0,0,0,0,bt,e,rw,rs
-typedef enum{
-	LCD_COMMAND=0x00,
-
-	LCD_WRITE_CG_OR_DDR=0x01,
-
-	LCD_READ_BS_FLAG_AND_ADDR=0x02,
-
-	LCD_READ_CG_OR_DDR=0x03,
-
-	LCD_WRITE_CG_OR_DDR_E=0x05,
-
-	LCD_READ_BS_FLAG_AND_ADDR_E=0x06,
-
-	LCD_READ_CG_OR_DDR_E=0x07,
-
-	LCD_COMMAND_BT=0x08,
-
-	LCD_WRITE_CG_OR_DDR_BT=0x09,
-	LCD_READ_CG_OR_DDR_BT=0x0B,
-
-	LCD_WRITE_CG_OR_DDR_E_BT=0x0D,
-	LCD_READ_CG_OR_DDR_E_BT=0x0F,
-}LCDCommandType;
-
 typedef struct{
 	LCDCommandType commandType;
 	LCDCommand command;
@@ -80,7 +81,7 @@ typedef struct{
 	uint8_t configInitArraySize;
 }LCD;
 
-extern const __flash LCDCommandS LCD_CONFIG_INIT_2X16S[5];
+extern const __flash LCDCommandS LCD_CONFIG_INIT_2X16S[4];
 
 extern const __flash uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
