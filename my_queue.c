@@ -109,11 +109,11 @@ Package remove(CommQueue* queue, uint8_t index){
 
 
 Package removePrior(PriorityQueue* queue, uint8_t priority){
-	if (queue==NULL || queue->tail==NULL || priority<queue->tail->priority)
+	if (queue==NULL || queue->tail==NULL || priority>queue->tail->priority)
 		return NULL_PACKAGE;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		PriorityNode* tmpNode=queue->head;
-		if (priority>=queue->head->priority){
+		if (priority<=queue->head->priority){
 			queue->head=queue->head->next;
 			if (queue->head==NULL){
 				queue->tail=NULL;
@@ -122,7 +122,7 @@ Package removePrior(PriorityQueue* queue, uint8_t priority){
 		}
 		else{
 			PriorityNode* prev=queue->head;
-			while(prev->next && prev->next->priority>priority)
+			while(prev->next && prev->next->priority<priority)
 					prev=prev->next;
 			tmpNode=prev->next;
 			prev->next=prev->next->next;
@@ -153,13 +153,13 @@ void queuePrior(PriorityQueue* queue, Package* package, uint8_t priority){
 			queue->isEmpty=false;
 		}
 		else{
-			if (queue->head->priority<priority){
+			if (queue->head->priority>priority){
 				tmpNode->next=queue->head;
 				queue->head=tmpNode;
 			}
 			else {
 				PriorityNode* prev=queue->head;
-				while(prev->next!=NULL && prev->next->priority>=priority)
+				while(prev->next!=NULL && prev->next->priority<=priority)
 					prev=prev->next;
 				tmpNode->next=prev->next;
 				prev->next=tmpNode;
