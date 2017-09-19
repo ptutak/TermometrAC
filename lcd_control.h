@@ -3,7 +3,7 @@
 
 #include "my_types.h"
 #include "my_twi.h"
-
+#include "os.h"
 
 typedef enum{
 	LCD_NULL=0x00,

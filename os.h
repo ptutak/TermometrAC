@@ -2,11 +2,10 @@
 #define _OS_H_
 #include "my_types.h"
 #include "my_queue.h"
+CommQueue* osInitQueue(void);
 
 CommQueue* osDynamicQueue(void);
 CommQueue* osStaticQueue(void);
-CommQueue* osInitQueue(void);
-
 PriorityQueue* osDynamicPriorQueue(void);
 PriorityQueue* osStaticPriorQueue(void);
 
