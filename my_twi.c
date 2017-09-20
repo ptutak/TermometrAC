@@ -22,7 +22,11 @@ bool twiEnabled(void){
 
 
 static inline void twiStart(bool twea){
+	usartSafeTransmit('s');
+	usartSafeTransmit('t');
+	usartSafeTransmit('a');
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTA|1<<TWEA;
+	usartSafeTransmit('\n');
 }
 
 static inline void twiAddress(uint8_t address, char mode, bool twea){
