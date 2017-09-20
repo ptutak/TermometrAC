@@ -5,7 +5,9 @@
 #include "my_twi.h"
 #include "os.h"
 
-//byte structure: 0b0,0,0,0,bt,e,rw,rs
+//byte structure: 0b d7,d6,d5,d4,bt,e,rw,rs
+//byte structure: 0b d3,d2,d1,d0,bt,e,rw,rs
+
 typedef enum{
 	LCD_COMMAND=0x00,
 

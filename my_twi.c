@@ -44,6 +44,9 @@ static inline void twiDataSend(uint8_t data, bool twea){
 	usartSafeTransmit('d');
 	usartSafeTransmit('a');
 	usartSafeTransmit('t');
+	usartSafeTransmit('S');
+	usartSafeTransmit('e');
+	usartSafeTransmit('n');
 	TWDR=data;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
 	usartSafeTransmit(data);
@@ -179,13 +182,14 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 		twiDataSend(*(order->data+order->marker-1),true);
 		break;
 	case 0x50:
-		if (order->size+1==order->marker)
+		if (order->marker+1==order->size)
 			*((uint8_t*)order->data+order->marker)=twiDataReceive(false);
 		else
 			*((uint8_t*)order->data+order->marker)=twiDataReceive(true);
 		order->marker++;
 		break;
 	case 0x58:
+		order->control=TWI_STOP;
 		twiStop(true);
 		break;
 	case 0x38:
@@ -224,13 +228,6 @@ ISR(TWI_vect){
 		order->control=TWI_STOP;
 		twiStop(true);
 	}
-
-	usartSafeTransmit('c');
-	usartSafeTransmit('o');
-	usartSafeTransmit('n');
-	usartSafeTransmit(order->control);
-	usartSafeTransmit('\n');
-
 	switch(order->control){
 	case TWI_NULL:
 		order->control=TWI_START;
@@ -266,16 +263,12 @@ ISR(TWI_vect){
 		TwiPackage orderToRemove=NULL_TWI_PACKAGE;
 		orderToRemove=dequeue(twiMasterQueue()).tPackage;
 		if (orderToRemove.runFunc){
-			usartSafeTransmit('k');
-			usartSafeTransmit('k');
-			usartSafeTransmit('\n');
 			(*orderToRemove.runFunc)(&orderToRemove);
 		}
-		if (!twiMasterQueue()->isEmpty)
+		if (!twiMasterQueue()->isEmpty){
 			addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
+		}
 	}
-	usartSafeTransmit('k');
-	usartSafeTransmit('\n');
 }
 
 

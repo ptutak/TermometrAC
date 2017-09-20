@@ -107,8 +107,7 @@ Package remove(CommQueue* queue, uint8_t index){
 	return NULL_PACKAGE;
 }
 
-
-Package removePrior(PriorityQueue* queue, uint8_t priority){
+Package removePrior(PriorityQueue* queue, uint16_t priority){
 	if (queue==NULL || queue->tail==NULL || priority>queue->tail->priority)
 		return NULL_PACKAGE;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
@@ -139,7 +138,7 @@ Package removePrior(PriorityQueue* queue, uint8_t priority){
 
 
 
-void queuePrior(PriorityQueue* queue, Package* package, uint8_t priority){
+void queuePrior(PriorityQueue* queue, Package* package, uint16_t priority){
     if (queue==NULL)
         return;
 	PriorityNode* tmpNode=malloc(sizeof(PriorityNode));

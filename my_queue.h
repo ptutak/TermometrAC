@@ -7,11 +7,11 @@ void queue(CommQueue* queue, Package* package);
 
 Package dequeue(CommQueue* queue);
 
-void queuePrior(PriorityQueue* queue, Package* package, uint8_t priority);
+void queuePrior(PriorityQueue* queue, Package* package, uint16_t priority);
 
 Package dequeuePrior(PriorityQueue* queue);
 
-Package removePrior(PriorityQueue* queue, uint8_t priority);
+Package removePrior(PriorityQueue* queue, uint16_t priority);
 
 void insert(CommQueue* queue, Package* package, uint8_t index);
 

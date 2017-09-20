@@ -106,7 +106,7 @@ typedef struct PriorityNode PriorityNode;
 
 struct PriorityNode{
 	Package package;
-	uint8_t priority;
+	uint16_t priority;
 	PriorityNode* next;
 };
 

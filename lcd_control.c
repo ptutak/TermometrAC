@@ -27,13 +27,16 @@ const __flash uint8_t waitForBSFlag[2]={0b11110010,0b11110010};
 
 Package* waitForBSFlagPackage(uint8_t address){
 	static Package package;
-	package=(Package){.tPackage={waitForBSFlag,2,address,'R',TWI_STD_TTL,0,TWI_NULL,waitForBSFlagFunc}};
+	package=(Package){.tPackage={waitForBSFlag,2,address,'R',TWI_STD_TTL,0,TWI_NULL,NULL}};
 	return &package;
 }
 
 void waitForBSFlagFunc(TwiPackage* package){
-	if (*(package->data)&0b00001000)
+	if (*(package->data)&0b10000000){
+		insert(twiMasterQueue(),&(Package){.tPackage=*package},0);
 		insert(twiMasterQueue(),waitForBSFlagPackage(package->address),0);
+		return;
+	}
 	free((uint8_t*)package->data);
 }
 

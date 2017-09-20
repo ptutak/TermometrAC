@@ -51,7 +51,7 @@ void initSystem(OsPackage* package){
 
     lcdInit(&lcd,splitDataPCF8574_DataHigh);
 
-    addOsFunc(osStaticQueue(),resendUsartMsg,NULL,0,false);
+    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,F_CPU/1000);
     _delay_ms(50);
 }
 

@@ -36,11 +36,11 @@ void remOsFunc(CommQueue* osQueue,uint8_t index){
 		free((void*)removed.data);
 }
 
-void addOsPriorFunc(PriorityQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic, uint8_t priority){
+void addOsPriorFunc(PriorityQueue* osQueue,void (*runFunc)(OsPackage* package),const __memx void* data, uint8_t size, bool dynamic, uint16_t priority){
 	queuePrior(osQueue,&(Package){.oPackage={runFunc,data,size,dynamic}},priority);
 }
 
-void remOsPriorFunc(PriorityQueue* osQueue,uint8_t priority){
+void remOsPriorFunc(PriorityQueue* osQueue,uint16_t priority){
 	OsPackage removed=removePrior(osQueue,priority).oPackage;
 	if (removed.dynamic)
 		free((void*)removed.data);
@@ -78,7 +78,7 @@ void manageOsDynamicPriorQueue(PriorityQueue* osQueue){
 
 
 void manageOsPriorQueue(PriorityQueue* osQueue){
-	static uint8_t priority=0;
+	static uint16_t priority=0;
 	PriorityNode* order=osQueue->head;
 	while (order && order->priority==0)
 		order=order->next;
