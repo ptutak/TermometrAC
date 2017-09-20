@@ -68,9 +68,9 @@ typedef struct{
 	uint8_t configInitArraySize;
 }LCD;
 
-extern const __flash LCDCommand* LCD_CONFIG_INIT_2X16S;
+extern LCDCommand LCD_CONFIG_INIT_2X16S[];
 
-extern const __flash uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
+extern const uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 
