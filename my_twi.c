@@ -22,11 +22,7 @@ bool twiEnabled(void){
 
 
 static inline void twiStart(bool twea){
-	usartSafeTransmit('s');
-	usartSafeTransmit('t');
-	usartSafeTransmit('a');
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTA|1<<TWEA;
-	usartSafeTransmit('\n');
 }
 
 static inline void twiAddress(uint8_t address, char mode, bool twea){
@@ -45,40 +41,18 @@ static inline void twiAddress(uint8_t address, char mode, bool twea){
 }
 
 static inline void twiDataSend(uint8_t data, bool twea){
-	usartSafeTransmit('d');
-	usartSafeTransmit('a');
-	usartSafeTransmit('t');
-	usartSafeTransmit('S');
-	usartSafeTransmit('e');
-	usartSafeTransmit('n');
 	TWDR=data;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
-	usartSafeTransmit(data);
-	usartSafeTransmit('\n');
 }
 
 static inline uint8_t twiDataReceive(bool twea){
-	usartSafeTransmit('d');
-	usartSafeTransmit('a');
-	usartSafeTransmit('t');
-	usartSafeTransmit('R');
-	usartSafeTransmit('e');
-	usartSafeTransmit('c');
-
 	uint8_t data=TWDR;
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
-	usartSafeTransmit(data);
-	usartSafeTransmit('\n');
-
 	return data;
 }
 
 static inline void twiStop(bool twea){
-	usartSafeTransmit('s');
-	usartSafeTransmit('t');
-	usartSafeTransmit('o');
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO|twea<<TWEA;
-	usartSafeTransmit('\n');
 }
 static inline void twiClearInt(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
@@ -208,17 +182,6 @@ void runTwiInterruptFunc(OsPackage* package);
 ISR(TWI_vect){
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);
-	static char sts[3];
-	utoa(twiStatusReg,sts,16);
-	usartSafeTransmit('s');
-	usartSafeTransmit('t');
-	usartSafeTransmit('s');
-	usartSafeTransmit(' ');
-	usartSafeTransmit('0');
-	usartSafeTransmit('x');
-	usartSafeTransmit((uint8_t)sts[0]);
-	usartSafeTransmit((uint8_t)sts[1]);
-	usartSafeTransmit('\n');
 
 	if (!(TWCR&1<<TWEN)){
 		return;
