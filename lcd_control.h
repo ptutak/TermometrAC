@@ -8,6 +8,7 @@
 //byte structure: 0b d7,d6,d5,d4,bt,e,rw,rs
 //byte structure: 0b d3,d2,d1,d0,bt,e,rw,rs
 
+//byte structure:0b 0,0,0,0,bt,e,rw,rs
 typedef enum{
 	LCD_COMMAND=0x00,
 
@@ -16,6 +17,8 @@ typedef enum{
 	LCD_READ_BS_FLAG_AND_ADDR=0x02,
 
 	LCD_READ_CG_OR_DDR=0x03,
+
+	LCD_COMMAND_E=0x04,
 
 	LCD_WRITE_CG_OR_DDR_E=0x05,
 
@@ -32,7 +35,7 @@ typedef enum{
 	LCD_READ_CG_OR_DDR_E_BT=0x0F,
 }LCDCommandType;
 
-
+//byte structure 0b d7,d6,d5,d4,d3,d2,d1,d0
 typedef enum{
 	LCD_NULL=0x00,
 

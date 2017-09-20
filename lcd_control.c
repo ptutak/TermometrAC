@@ -4,10 +4,10 @@
 
 
 const __flash LCDCommandS LCD_CONFIG_INIT_2X16S[4]={
-		{LCD_COMMAND,LCD_F_SET_4_BIT_2_LINE_8_FONT},
-		{LCD_COMMAND,LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_ON},
-		{LCD_COMMAND,LCD_CLEAR_DISPLAY},
-		{LCD_COMMAND,LCD_SET_INCREMENT},
+		{LCD_COMMAND_E,LCD_F_SET_4_BIT_2_LINE_8_FONT},
+		{LCD_COMMAND_E,LCD_SET_DISPLAY_ON_CURSOR_ON_BLINKING_ON},
+		{LCD_COMMAND_E,LCD_CLEAR_DISPLAY},
+		{LCD_COMMAND_E,LCD_SET_INCREMENT},
 };
 
 const __flash uint8_t LCD_CONFIG_INIT_2X16S_SIZE=4;
@@ -23,7 +23,7 @@ uint16_t_split splitDataPCF8574_DataHigh(LCDCommandType commandType, uint8_t dat
 
 
 
-const __flash uint8_t waitForBSFlag[2]={0b11110010,0b11110010};
+const __flash uint8_t waitForBSFlag[2]={0b11110110,0b11110110};
 
 Package* waitForBSFlagPackage(uint8_t address){
 	static Package package;
@@ -47,12 +47,15 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8
 	if (lcd->configInitArraySize==0)
 		return;
 
-	uint16_t_split configData=(*splitFunction)(LCD_COMMAND,LCD_F_SET_8_BIT_2_LINE_8_FONT);
+	uint16_t_split configData;
+
+	configData=(*splitFunction)(LCD_COMMAND_E,LCD_F_SET_4_BIT_2_LINE_8_FONT);
 
 	uint8_t* data=malloc(2);
 	data[0]=configData.high;
 	twiSendMasterDataNoInterrupt(data,1,lcd->address,NULL);
 	runTwiInterruptFunc(NULL);
+/*
 	_delay_ms(20);
 	twiSendMasterDataNoInterrupt(data,1,lcd->address,NULL);
 	runTwiInterruptFunc(NULL);
@@ -60,6 +63,7 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDCommandType type,uint8
 	twiSendMasterDataNoInterrupt(data,1,lcd->address,freePackageData);
 	runTwiInterruptFunc(NULL);
 	_delay_ms(10);
+*/
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		for (int i=0;i<lcd->configInitArraySize;i++){
 			uint8_t* data=malloc(2);
