@@ -26,21 +26,10 @@ void resendUsartMsg(OsPackage* package){
 
 void initSystem(OsPackage* package){
 	usartInit(BAUD);
-	DDRB=1<<PB5;
 
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('C');
-	usartSafeTransmit('\n');
+    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,F_CPU/1000);
+
+    DDRB=1<<PB5;
 
 	twiInit(TWI_FREQ,true);
 
@@ -48,10 +37,10 @@ void initSystem(OsPackage* package){
     lcd.address=0x40;
     lcd.configInitArray=LCD_CONFIG_INIT_2X16S;
     lcd.configInitArraySize=LCD_CONFIG_INIT_2X16S_SIZE;
-    _delay_ms(1000);
-    lcdInit(&lcd,splitDataPCF8574_DataHigh);
 
-    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,F_CPU/1000);
+    _delay_ms(1000);
+
+    lcdInit(&lcd,splitDataPCF8574_DataHigh);
 
 }
 
