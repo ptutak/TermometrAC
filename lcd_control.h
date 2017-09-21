@@ -70,7 +70,7 @@ typedef struct{
 
 extern LCDCommand LCD_CONFIG_INIT_2X16S[];
 
-extern const uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
+extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 

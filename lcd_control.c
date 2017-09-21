@@ -6,18 +6,15 @@
 LCDCommand LCD_CONFIG_INIT_2X16S[]={
 		LCD_F_SET_4_BIT_1_LINE_8_FONT,
 		LCD_SET_DISPLAY|DISPLAY_ON|BLINKING_ON,
-		LCD_CLEAR_DISPLAY,
+		LCD_CLEAR_DISPLAY
+//		LCD_SET_INCREMENT
 };
 
-const uint8_t LCD_CONFIG_INIT_2X16S_SIZE=3;
+uint8_t LCD_CONFIG_INIT_2X16S_SIZE=sizeof(LCD_CONFIG_INIT_2X16S)/sizeof(LCDCommand);
 
 
 uint16_t_split splitDataPCF8574_DataHigh(LCDInstructionType instructionType, uint8_t data){
-	uint8_t high=(uint8_t)instructionType;
-	uint8_t low=(uint8_t)instructionType;
-	high|=data&(0xF0);
-	low|=data<<4;
-	return (uint16_t_split){low,high};
+	return (uint16_t_split){(uint8_t)instructionType|(data<<4),(uint8_t)instructionType|(data&(0xF0))};
 }
 
 uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low){
@@ -25,8 +22,6 @@ uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low){
 }
 
 uint8_t* waitForBSFlagData;
-
-uint8_t* lcdCursorAddress;
 
 Package* waitForBSFlagPackage(uint8_t address){
 	static Package package;
@@ -42,12 +37,12 @@ void waitForBSFlagFunc(TwiPackage* package){
 		usartSafeTransmit('\n');
 		return;
 	}
-	else {
-		*lcdCursorAddress=receivedDataPCF8574_DataHigh(*(package->data),*(package->data+1));
-	}
-	free((uint8_t*)package->data);
 }
 
+void lcdNextFunc(TwiPackage* package){
+	addOsFunc(osDynamicQueue(),twiInterrupt,NULL,0,false);
+	free((uint8_t*)package->data);
+}
 
 void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,uint8_t data)){
 	if (lcd->configInitArraySize==0)
@@ -57,7 +52,6 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 	uint16_t_split configDataE;
 	uint8_t* data=malloc(4);
 	waitForBSFlagData=malloc(4);
-	lcdCursorAddress=malloc(1);
 	configDataE=(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR | BACKLIGHT | COMMAND_ENABLE,LCD_FULL);
 	configData=(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR | BACKLIGHT,LCD_FULL);
 	waitForBSFlagData[0]=configDataE.high;
@@ -71,10 +65,13 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 	data[1]=configData.high;
 
 	twiSendMasterData(data,2,lcd->address,NULL);
+	twiInterrupt(NULL);
 	_delay_ms(5);
 	twiSendMasterData(data,2,lcd->address,NULL);
+	twiInterrupt(NULL);
 	_delay_ms(5);
 	twiSendMasterData(data,2,lcd->address,NULL);
+	twiInterrupt(NULL);
 	_delay_ms(5);
 
 	configDataE=(*splitFunction)(LCD_COMMAND| BACKLIGHT |COMMAND_ENABLE,lcd->configInitArray[0]);
@@ -82,8 +79,6 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 	data[0]=configDataE.high;
 	data[1]=configData.high;
 	twiSendMasterData(data,2,lcd->address,freePackageData);
-	_delay_ms(5);
-
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		for (int i=0;i<lcd->configInitArraySize;i++){
@@ -95,23 +90,23 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 			data[2]=configData.high;
 			data[3]=configData.low;
 			twiSendMasterData(data,4,lcd->address,freePackageData);
-			_delay_ms(1);
 		}
 	}
 
-//	runTwiInterruptFunc(NULL);
-/*
-	configDataE=(*splitFunction)(LCD_COMMAND |BACKLIGHT|COMMAND_ENABLE,LCD_SET_DDR_ADDR|0x08);
-	configData=(*splitFunction)(LCD_COMMAND|BACKLIGHT,LCD_SET_DDR_ADDR|0x08);
+
+	configDataE=(*splitFunction)(LCD_COMMAND |BACKLIGHT|COMMAND_ENABLE,LCD_SET_DDR_ADDR|0x03);
+	configData=(*splitFunction)(LCD_COMMAND|BACKLIGHT,LCD_SET_DDR_ADDR|0x03);
 	data=malloc(4);
 	data[0]=configDataE.high;
 	data[1]=configDataE.low;
 	data[2]=configData.high;
 	data[3]=configData.low;
 	twiSendMasterData(data,4,lcd->address,freePackageData);
+
 	twiSendMasterData(waitForBSFlagData,4,lcd->address,NULL);
 	data=malloc(2);
 	twiReadMasterData(data,2,lcd->address,waitForBSFlagFunc);
+	usartSafeTransmit(receivedDataPCF8574_DataHigh(data[0],data[1]));
 
 	configDataE=(*splitFunction)(LCD_WRITE_CG_OR_DDR |BACKLIGHT|COMMAND_ENABLE,'A');
 	configData=(*splitFunction)(LCD_WRITE_CG_OR_DDR|BACKLIGHT,'A');
@@ -124,9 +119,6 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 	twiSendMasterData(waitForBSFlagData,4,lcd->address,NULL);
 	data=malloc(2);
 	twiReadMasterData(data,2,lcd->address,waitForBSFlagFunc);
-*/
-//	runTwiInterruptFunc(NULL);
-
-
+	usartSafeTransmit(receivedDataPCF8574_DataHigh(data[0],data[1]));
 
 }

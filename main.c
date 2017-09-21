@@ -27,12 +27,13 @@ void resendUsartMsg(OsPackage* package){
 void initSystem(OsPackage* package){
 	usartInit(BAUD);
 
-    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,F_CPU/1000);
+    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,500);
+
 
     DDRB=1<<PB5;
 
 	twiInit(TWI_FREQ,true);
-
+	addOsPriorFunc(osStaticPriorQueue(),twiInterrupt,NULL,0,false,100);
     LCD lcd;
     lcd.address=0x40;
     lcd.configInitArray=LCD_CONFIG_INIT_2X16S;

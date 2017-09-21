@@ -5,19 +5,30 @@
 const uint32_t TWI_FREQ=100000;
 const uint8_t TWI_STD_TTL=20;
 
+static bool twiBusyFlag=false;
 
-
+bool twiReady(){
+	return !twiBusyFlag;
+}
 
 CommQueue* twiMasterQueue(void){
 	static CommQueue twiMasterQueue={NULL,NULL,true,0};
 	return &twiMasterQueue;
 }
 
-bool twiEnabled(void){
-	return (bool)TWCR&1<<TWEN;
+
+void twiInit(uint32_t freq, bool twea){
+	TWCR=1<<TWEN|1<<TWIE|twea<<TWEA;
+	uint32_t twbr=(F_CPU/freq - 16)/2;
+	uint8_t prescaler=0;
+	while (twbr>255){
+		twbr/=4;
+		prescaler++;
+	}
+	TWSR&=(0b11111000);
+	TWSR|=prescaler;
+	TWBR=(uint8_t)twbr;
 }
-
-
 
 
 
@@ -176,20 +187,19 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 	}
 }
 
-void runTwiInterruptFunc(OsPackage* package);
-
-
 ISR(TWI_vect){
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);
-
-	if (!(TWCR&1<<TWEN)){
+	if (!(TWCR&(1<<TWEN))){
+		twiBusyFlag=false;
 		return;
 	}
 	if (twiMasterQueue()->isEmpty){
 		twiClearInt(false);
+		twiBusyFlag=false;
 		return;
 	}
+	twiBusyFlag=true;
 	order=&(twiMasterQueue()->head->package.tPackage);
 	if (order->ttl==0){
 		order->control=TWI_STOP;
@@ -232,29 +242,16 @@ ISR(TWI_vect){
 		if (orderToRemove.runFunc){
 			(*orderToRemove.runFunc)(&orderToRemove);
 		}
-		if (!twiMasterQueue()->isEmpty){
-			addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
-		}
+		twiBusyFlag=false;
 	}
 }
 
 
-void runTwiInterruptFunc(OsPackage* package){
-	TWI_vect();
+void twiInterrupt(OsPackage* package){
+	if (!twiMasterQueue()->isEmpty && !twiBusyFlag)
+		TWI_vect();
 }
 
-void twiInit(uint32_t freq, bool twea){
-	TWCR=1<<TWEN|1<<TWIE|twea<<TWEA;
-	uint32_t twbr=(F_CPU/freq - 16)/2;
-	uint8_t prescaler=0;
-	while (twbr>255){
-		twbr/=4;
-		prescaler++;
-	}
-	TWSR&=(0b11111000);
-	TWSR|=prescaler;
-	TWBR=(uint8_t)twbr;
-}
 
 void twiOff(){
 	TWBR=0;
@@ -264,7 +261,6 @@ void twiOff(){
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
-	addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
 }
 void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'W',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
@@ -272,7 +268,6 @@ void twiSendMasterDataNoInterrupt(const __memx uint8_t* data, uint8_t size, uint
 
 void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
-	addOsFunc(osDynamicQueue(),runTwiInterruptFunc,NULL,0,false);
 }
 void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
