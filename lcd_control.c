@@ -13,8 +13,8 @@ LCDCommand LCD_CONFIG_INIT_2X16S[]={
 uint8_t LCD_CONFIG_INIT_2X16S_SIZE=sizeof(LCD_CONFIG_INIT_2X16S)/sizeof(LCDCommand);
 
 
-uint16_t_split splitDataPCF8574_DataHigh(LCDInstructionType instructionType, uint8_t data){
-	return (uint16_t_split){(uint8_t)instructionType|(data<<4),(uint8_t)instructionType|(data&(0xF0))};
+uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data){
+	return (uint16_t)(instructionType|(data & 0xF0))|((instructionType|(data<<4))<<8);
 }
 
 uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low){
@@ -44,17 +44,23 @@ void lcdNextFunc(TwiPackage* package){
 	free((uint8_t*)package->data);
 }
 
-void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,uint8_t data)){
+uint32_t refactor(uint8_t instruction,uint8_t data, uint16_t (*splitFunction)(uint8_t instruction, uint8_t data)){
+	uint16_t dataSplit=(*splitFunction)(instruction|COMMAND_ENABLE,data);
+	uint32_t ret=((uint32_t)dataSplit)<<16;
+	dataSplit=(*splitFunction)(instruction,data);
+	ret|=dataSplit;
+	return ret;
+}
+
+void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction,uint8_t data)){
 	if (lcd->configInitArraySize==0)
 		return;
 
-	uint16_t_split configData;
-	uint16_t_split configDataE;
+	uint32_t configData;
 	uint8_t* data=malloc(4);
 	waitForBSFlagData=malloc(4);
-	configDataE=(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR | BACKLIGHT | COMMAND_ENABLE,LCD_FULL);
-	configData=(*splitFunction)(LCD_READ_BS_FLAG_AND_ADDR | BACKLIGHT,LCD_FULL);
-	waitForBSFlagData[0]=configDataE.high;
+	configData=refactor(LCD_READ_BS_FLAG_AND_ADDR | BACKLIGHT,LCD_FULL,splitFunction);
+	*waitForBSFlagData=configData;
 	waitForBSFlagData[1]=configDataE.low;
 	waitForBSFlagData[2]=configData.high;
 	waitForBSFlagData[3]=configData.low;
@@ -90,6 +96,8 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 			data[2]=configData.high;
 			data[3]=configData.low;
 			twiSendMasterData(data,4,lcd->address,freePackageData);
+			twiInterrupt(NULL);
+			_delay_ms(1);
 		}
 	}
 

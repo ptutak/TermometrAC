@@ -75,9 +75,9 @@ extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 
-void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type, uint8_t data));
+void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(uint8_t instruction, uint8_t data));
 
-uint16_t_split splitDataPCF8574_DataHigh(LCDInstructionType instructionType, uint8_t data);
+uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);
 
 void waitForBSFlagFunc(TwiPackage* package);
 
