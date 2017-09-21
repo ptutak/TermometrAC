@@ -4,13 +4,12 @@
 
 
 LCDCommand LCD_CONFIG_INIT_2X16S[]={
-		LCD_F_SET_4_BIT_2_LINE_8_FONT,
-		//LCD_SET_DISPLAY,
-//		LCD_CLEAR_DISPLAY,
-		LCD_SET_DISPLAY|DISPLAY_ON|CURSOR_ON,
+		LCD_F_SET_4_BIT_1_LINE_8_FONT,
+		LCD_SET_DISPLAY|DISPLAY_ON|BLINKING_ON,
+		LCD_CLEAR_DISPLAY,
 };
 
-const uint8_t LCD_CONFIG_INIT_2X16S_SIZE=2;
+const uint8_t LCD_CONFIG_INIT_2X16S_SIZE=3;
 
 
 uint16_t_split splitDataPCF8574_DataHigh(LCDInstructionType instructionType, uint8_t data){
@@ -75,8 +74,16 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 	_delay_ms(5);
 	twiSendMasterData(data,2,lcd->address,NULL);
 	_delay_ms(5);
+	twiSendMasterData(data,2,lcd->address,NULL);
+	_delay_ms(5);
+
+	configDataE=(*splitFunction)(LCD_COMMAND| BACKLIGHT |COMMAND_ENABLE,lcd->configInitArray[0]);
+	configData=(*splitFunction)(LCD_COMMAND | BACKLIGHT,lcd->configInitArray[0]);
+	data[0]=configDataE.high;
+	data[1]=configData.high;
 	twiSendMasterData(data,2,lcd->address,freePackageData);
 	_delay_ms(5);
+
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		for (int i=0;i<lcd->configInitArraySize;i++){
@@ -87,16 +94,12 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 			data[1]=configDataE.low;
 			data[2]=configData.high;
 			data[3]=configData.low;
-			twiSendMasterDataNoInterrupt(data,4,lcd->address,freePackageData);
-/*
-  			twiSendMasterDataNoInterrupt(waitForBSFlagData,4,lcd->address,NULL);
-			data=malloc(2);
-			twiReadMasterDataNoInterrupt(data,2,lcd->address,waitForBSFlagFunc);
-*/
+			twiSendMasterData(data,4,lcd->address,freePackageData);
+			_delay_ms(1);
 		}
 	}
-	runTwiInterruptFunc(NULL);
-//	_delay_ms(5);
+
+//	runTwiInterruptFunc(NULL);
 /*
 	configDataE=(*splitFunction)(LCD_COMMAND |BACKLIGHT|COMMAND_ENABLE,LCD_SET_DDR_ADDR|0x08);
 	configData=(*splitFunction)(LCD_COMMAND|BACKLIGHT,LCD_SET_DDR_ADDR|0x08);
@@ -105,12 +108,23 @@ void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(LCDInstructionType type,u
 	data[1]=configDataE.low;
 	data[2]=configData.high;
 	data[3]=configData.low;
-	twiSendMasterDataNoInterrupt(data,4,lcd->address,freePackageData);
-	twiSendMasterDataNoInterrupt(waitForBSFlagData,4,lcd->address,NULL);
+	twiSendMasterData(data,4,lcd->address,freePackageData);
+	twiSendMasterData(waitForBSFlagData,4,lcd->address,NULL);
 	data=malloc(2);
-	twiReadMasterDataNoInterrupt(data,2,lcd->address,waitForBSFlagFunc);
-*/
+	twiReadMasterData(data,2,lcd->address,waitForBSFlagFunc);
 
+	configDataE=(*splitFunction)(LCD_WRITE_CG_OR_DDR |BACKLIGHT|COMMAND_ENABLE,'A');
+	configData=(*splitFunction)(LCD_WRITE_CG_OR_DDR|BACKLIGHT,'A');
+	data=malloc(4);
+	data[0]=configDataE.high;
+	data[1]=configDataE.low;
+	data[2]=configData.high;
+	data[3]=configData.low;
+	twiSendMasterData(data,4,lcd->address,freePackageData);
+	twiSendMasterData(waitForBSFlagData,4,lcd->address,NULL);
+	data=malloc(2);
+	twiReadMasterData(data,2,lcd->address,waitForBSFlagFunc);
+*/
 //	runTwiInterruptFunc(NULL);
 
 
