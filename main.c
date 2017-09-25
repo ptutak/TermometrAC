@@ -52,7 +52,9 @@ void initSystem(OsPackage* package){
     lcdInit(&lcd);
 
     usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
-    lcdSendText(&lcd,PSTR("LCD init ;)"),sizeof("LCD init ;)")-1,false);
+    lcdSendText(&lcd,PSTR("Czesc Magda!"),sizeof("Czesc Magda!")-1,false);
+    lcdGoTo(&lcd,0,1);
+    lcdSendText(&lcd,PSTR("HURRA Dziala ;)"),sizeof("HURRA Dziala ;)")-1,false);
 
     addOsPriorFunc(osStaticPriorQueue(),usartSign,NULL,0,false,0xFFFF/2);
 }
@@ -65,10 +67,12 @@ int main(void){
 	manageOsDynamicQueue(osInitQueue());
 
 	while(1){
-    	manageOsDynamicQueue(osDynamicQueue());
-    	manageOsQueue(osStaticQueue());
-    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
+
+//    	manageOsDynamicQueue(osDynamicQueue());
+//    	manageOsQueue(osStaticQueue());
+//    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
     	manageOsPriorQueue(osStaticPriorQueue());
+
     }
 
 }
