@@ -21,6 +21,7 @@ typedef enum{
 	ENABLE=0x04,
 
 	BACKLIGHT_ON=0x08,
+	BACKLIGHT_OFF=0x00,
 }LCDInstructionType;
 
 //byte structure 0b d7,d6,d5,d4,d3,d2,d1,d0
@@ -40,6 +41,7 @@ typedef enum{
 	BLINKING_ON=0x01,
 	CURSOR_ON=0x02,
 	DISPLAY_ON=0x04,
+	DISPLAY_OFF=0x00,
 
 	LCD_SHIFT_CURSOR_LEFT=0x10,
 	LCD_SHIFT_CURSOR_RIGHT=0x14,
@@ -67,7 +69,7 @@ typedef struct{
 	const __memx LCDCommand* configInitArray;
 	uint8_t configInitArraySize;
 	uint16_t (*splitFunction) (uint8_t instruction, uint8_t data);
-	LCDCommand backlight;
+	LCDInstructionType backlight;
 }LCD;
 
 extern LCDCommand LCD_CONFIG_INIT_2X16S[];
@@ -78,10 +80,14 @@ extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 void lcdInit(LCD* lcd);
+void lcdSendText(LCD* lcd,const __memx char* tekst,uint8_t size,bool dynamic);
+void lcdBacklightToggle(LCD* lcd);
+void lcdGoTo(LCD* lcd, uint8_t x, uint8_t y);
+
 
 uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);
+uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low);
 
-void readBSFlagAndAddr(TwiPackage* package);
 
 
 #endif

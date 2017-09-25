@@ -47,14 +47,15 @@ void initSystem(OsPackage* package){
     _delay_ms(1000);
 
 
-    lcdInit(&lcd,splitDataPCF8574_DataHigh);
+    lcdInit(&lcd);
 
     usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
+    lcdSendText(&lcd,PSTR("LCD init ;)"),sizeof("LCD init ;)")-1,false);
 }
 
 int main(void){
-	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
 
+	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
 	manageOsDynamicQueue(osInitQueue());
     while(1){
     	manageOsDynamicQueue(osDynamicQueue());
