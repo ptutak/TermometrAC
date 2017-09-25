@@ -23,7 +23,7 @@ void twiSendMasterData(const __memx uint8_t* data, uint8_t size,uint8_t address,
 void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self));
 
 
-void twiInterrupt(OsPackage* package);
+void twiInterrupt(OsPackage* notUsed);
 
 void twiOff(void);
 

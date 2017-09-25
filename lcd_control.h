@@ -18,7 +18,7 @@ typedef enum{
 
 	LCD_READ_CG_OR_DDR=0x03,
 
-	COMMAND_ENABLE=0x04,
+	ENABLE=0x04,
 
 	BACKLIGHT=0x08,
 }LCDInstructionType;
@@ -75,7 +75,7 @@ extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 
-void lcdInit(LCD* lcd, uint16_t_split (*splitFunction)(uint8_t instruction, uint8_t data));
+void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction, uint8_t data));
 
 uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);
 

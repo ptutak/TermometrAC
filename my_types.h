@@ -10,12 +10,6 @@
 #include <stdlib.h>
 
 
-typedef struct{
-	uint8_t low;
-	uint8_t high;
-}uint16_t_split;
-
-
 typedef struct {
 	const __memx uint8_t* data;
 	uint8_t size;

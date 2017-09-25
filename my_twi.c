@@ -247,7 +247,7 @@ ISR(TWI_vect){
 }
 
 
-void twiInterrupt(OsPackage* package){
+void twiInterrupt(OsPackage* notUsed){
 	if (!twiMasterQueue()->isEmpty && !twiBusyFlag)
 		TWI_vect();
 }
