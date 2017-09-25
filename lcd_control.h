@@ -68,7 +68,8 @@ typedef struct{
 	uint8_t address;
 	const __memx LCDCommand* configInitArray;
 	uint8_t configInitArraySize;
-	uint16_t (*splitFunction) (uint8_t instruction, uint8_t data);
+	uint16_t (*sendSplit) (uint8_t instruction, uint8_t data);
+	uint8_t (*receivedMerge)(uint8_t high, uint8_t low);
 	LCDInstructionType backlight;
 }LCD;
 

@@ -20,44 +20,51 @@ void resendUsartMsg(OsPackage* package){
         usartSendText(received,size,true);
         size=0;
     }
-    PORTB^=1<<PB5;
-    _delay_ms(500);
 }
+
+LCD lcd;
+
+void lcdBlink(OsPackage* notUsed){
+	lcdBacklightToggle(&lcd);
+}
+
+void usartSign(OsPackage* notUsed){
+	usartSafeTransmit('a');
+	usartSafeTransmit('\n');
+}
+
 
 void initSystem(OsPackage* package){
 
 	usartInit(BAUD);
-    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,500);
+    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,1000);
 
+    twiInit(TWI_FREQ,true);
+	addOsPriorFunc(osStaticPriorQueue(),twiInterrupt,NULL,0,false,1000);
 
-    DDRB=1<<PB5;
-
-
-	twiInit(TWI_FREQ,true);
-	addOsPriorFunc(osStaticPriorQueue(),twiInterrupt,NULL,0,false,100);
-
-
-    LCD lcd;
     lcd.address=0x40;
     lcd.configInitArray=LCD_CONFIG_INIT_2X16S;
     lcd.configInitArraySize=LCD_CONFIG_INIT_2X16S_SIZE;
-    lcd.splitFunction=splitDataPCF8574_DataHigh;
+    lcd.sendSplit=splitDataPCF8574_DataHigh;
+    lcd.receivedMerge=receivedDataPCF8574_DataHigh;
     lcd.backlight=BACKLIGHT_ON;
-
-    _delay_ms(1000);
-
 
     lcdInit(&lcd);
 
     usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
     lcdSendText(&lcd,PSTR("LCD init ;)"),sizeof("LCD init ;)")-1,false);
+
+    addOsPriorFunc(osStaticPriorQueue(),usartSign,NULL,0,false,0xFFFF/2);
 }
 
-int main(void){
 
+
+int main(void){
 	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
+
 	manageOsDynamicQueue(osInitQueue());
-    while(1){
+
+	while(1){
     	manageOsDynamicQueue(osDynamicQueue());
     	manageOsQueue(osStaticQueue());
     	manageOsDynamicPriorQueue(osDynamicPriorQueue());
