@@ -4,10 +4,10 @@
 
 
 LCDCommand LCD_CONFIG_INIT_2X16S[]={
-		LCD_F_SET_4_BIT_1_LINE_8_FONT,
+		LCD_F_SET_4_BIT_2_LINE_8_FONT,
 		LCD_SET_DISPLAY|DISPLAY_ON|BLINKING_ON,
 		LCD_CLEAR_DISPLAY,
-		LCD_SET_INCREMENT,
+		LCD_SET_INCREMENT
 };
 
 uint8_t LCD_CONFIG_INIT_2X16S_SIZE=sizeof(LCD_CONFIG_INIT_2X16S)/sizeof(LCDCommand);
@@ -45,10 +45,12 @@ void lcdNextFunc(TwiPackage* package){
 }
 
 static inline uint32_t packageEnableSplit(uint8_t instruction,uint8_t data, uint16_t (*splitFunction)(uint8_t instruction, uint8_t data)){
-	return (((uint32_t)(*splitFunction)(instruction,data))<<16) | ((*splitFunction)(instruction|ENABLE,data));
+	uint16_t enData=(*splitFunction)(instruction|ENABLE,data);
+	uint16_t origData=(*splitFunction)(instruction,data);
+	return ((uint32_t)((uint8_t)enData)) | (((uint32_t)((uint8_t)origData))<<8) | (((uint32_t)(enData & 0xFF00))<<8) | (((uint32_t)(origData & 0xFF00))<<16);
 }
 
-void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction,uint8_t data)){
+void lcdInit(LCD* lcd){
 	if (lcd->configInitArraySize==0)
 		return;
 
@@ -57,8 +59,8 @@ void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction,uint8_t dat
 
 
 	uint8_t* data=malloc(2);
-	data[0]=(uint8_t)(*splitFunction)(LCD_COMMAND | BACKLIGHT | ENABLE, LCD_F_SET_8_BIT_2_LINE_8_FONT);
-	data[1]=(uint8_t)(*splitFunction)(LCD_COMMAND | BACKLIGHT, LCD_F_SET_8_BIT_2_LINE_8_FONT);
+	data[0]=(uint8_t)(*lcd->splitFunction)(LCD_COMMAND | BACKLIGHT | ENABLE, LCD_F_SET_8_BIT_2_LINE_8_FONT);
+	data[1]=(uint8_t)(*lcd->splitFunction)(LCD_COMMAND | BACKLIGHT, LCD_F_SET_8_BIT_2_LINE_8_FONT);
 
 	twiSendMasterData(data,2,lcd->address,NULL);
 	twiInterrupt(NULL);
@@ -70,15 +72,15 @@ void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction,uint8_t dat
 	twiInterrupt(NULL);
 	_delay_ms(5);
 
-	data[0]=(uint8_t)(*splitFunction)(LCD_COMMAND | BACKLIGHT | ENABLE, lcd->configInitArray[0]);
-	data[1]=(uint8_t)(*splitFunction)(LCD_COMMAND | BACKLIGHT, lcd->configInitArray[0]);
+	data[0]=(uint8_t)(*lcd->splitFunction)(LCD_COMMAND | BACKLIGHT | ENABLE, lcd->configInitArray[0]);
+	data[1]=(uint8_t)(*lcd->splitFunction)(LCD_COMMAND | BACKLIGHT, lcd->configInitArray[0]);
 	twiSendMasterData(data,2,lcd->address,freePackageData);
 	twiInterrupt(NULL);
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		for (int i=0;i<lcd->configInitArraySize;i++){
 			data=malloc(4);
-			*((uint32_t*)data)=packageEnableSplit(LCD_COMMAND | BACKLIGHT ,lcd->configInitArray[i],splitFunction);
+			*((uint32_t*)data)=packageEnableSplit(LCD_COMMAND | BACKLIGHT ,lcd->configInitArray[i],lcd->splitFunction);
 			twiSendMasterData(data,4,lcd->address,freePackageData);
 		}
 	}
@@ -86,14 +88,13 @@ void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction,uint8_t dat
 
 	for (uint8_t i='A';i<'z';++i){
 		data=malloc(4);
-		*((uint32_t*)data)=packageEnableSplit(LCD_WRITE_CG_OR_DDR |BACKLIGHT,(uint8_t)i,splitFunction);
+		*((uint32_t*)data)=packageEnableSplit(LCD_WRITE_CG_OR_DDR |BACKLIGHT,(uint8_t)i,lcd->splitFunction);
 		twiSendMasterData(data,4,lcd->address,freePackageData);
-		twiInterrupt(NULL);
 	}
-/*
-	twiSendMasterData(waitForBSFlagData,4,lcd->address,NULL);
-	data=malloc(2);
-	twiReadMasterData(data,2,lcd->address,waitForBSFlagFunc);
-	usartSafeTransmit(receivedDataPCF8574_DataHigh(data[0],data[1]));
-*/
+
+}
+
+void lcdGoTo(LCD lcd, uint8_t x, uint8_t y){
+	uint8_t* data=malloc(4);
+	*((uint32_t*)data)=packageEnableSplit()
 }

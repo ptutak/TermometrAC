@@ -66,6 +66,7 @@ typedef struct{
 	uint8_t address;
 	const __memx LCDCommand* configInitArray;
 	uint8_t configInitArraySize;
+	uint16_t (*splitFunction) (uint8_t instruction, uint8_t data);
 }LCD;
 
 extern LCDCommand LCD_CONFIG_INIT_2X16S[];
@@ -75,7 +76,7 @@ extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 
-void lcdInit(LCD* lcd, uint16_t (*splitFunction)(uint8_t instruction, uint8_t data));
+void lcdInit(LCD* lcd);
 
 uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);
 

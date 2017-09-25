@@ -47,6 +47,8 @@ void initSystem(OsPackage* package){
 
 
     lcdInit(&lcd,splitDataPCF8574_DataHigh);
+
+    usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
 }
 
 int main(void){
