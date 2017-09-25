@@ -47,7 +47,6 @@ struct TwiPackage{
 
 extern const TwiPackage NULL_TWI_PACKAGE;
 
-void freePackageData(TwiPackage* package);
 
 
 

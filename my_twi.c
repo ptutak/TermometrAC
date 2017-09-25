@@ -187,6 +187,11 @@ static inline void twiDataAction(TwiPackage* order, uint8_t twiStatusReg){
 	}
 }
 
+void freeTwiPackageData(TwiPackage* package){
+	free((uint8_t*)package->data);
+}
+
+
 ISR(TWI_vect){
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);

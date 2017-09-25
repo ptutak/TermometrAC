@@ -41,7 +41,8 @@ void initSystem(OsPackage* package){
     lcd.address=0x40;
     lcd.configInitArray=LCD_CONFIG_INIT_2X16S;
     lcd.configInitArraySize=LCD_CONFIG_INIT_2X16S_SIZE;
-
+    lcd.splitFunction=splitDataPCF8574_DataHigh;
+    lcd.backlight=BACKLIGHT_ON;
 
     _delay_ms(1000);
 

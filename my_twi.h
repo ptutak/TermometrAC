@@ -27,4 +27,8 @@ void twiInterrupt(OsPackage* notUsed);
 
 void twiOff(void);
 
+
+void freeTwiPackageData(TwiPackage* package);
+
+
 #endif /*__FILE__##__COUNTER__*/
