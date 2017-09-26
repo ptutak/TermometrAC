@@ -1,0 +1,3 @@
+#include "termometr.h"
+
+

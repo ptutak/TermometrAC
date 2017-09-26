@@ -75,7 +75,7 @@ extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
 
 
 void lcdInit(LCD* lcd);
-void lcdSendText(LCD* lcd,const __memx char* tekst,uint8_t size,bool dynamic);
+void lcdSendText(LCD* lcd, const __memx char* tekst, uint8_t size, bool dynamic);
 void lcdBacklightToggle(LCD* lcd);
 void lcdGoTo(LCD* lcd, uint8_t x, uint8_t y);
 void lcdClear(LCD* lcd);
