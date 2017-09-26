@@ -24,6 +24,7 @@ void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void (*call
 
 
 void twiInterrupt(OsPackage* notUsed);
+void twiManageQueue(CommQueue* commQueue);
 
 void twiOff(void);
 

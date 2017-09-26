@@ -257,6 +257,12 @@ void twiInterrupt(OsPackage* notUsed){
 		TWI_vect();
 }
 
+void twiManageQueue(CommQueue* commQueue){
+	while (!commQueue->isEmpty){
+		if (!twiBusyFlag)
+			TWI_vect();
+	}
+}
 
 void twiOff(){
 	TWBR=0;
@@ -277,3 +283,5 @@ void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void(*callF
 void twiReadMasterDataNoInterrupt(uint8_t* data, uint8_t size, uint8_t address, void(*callFunc)(TwiPackage* self)){
 	queue(twiMasterQueue(),(void*)&((Package){.tPackage={data,size,address,'R',TWI_STD_TTL,0,TWI_NULL,callFunc}}));
 }
+
+

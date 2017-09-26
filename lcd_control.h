@@ -80,7 +80,7 @@ void lcdBacklightToggle(LCD* lcd);
 void lcdGoTo(LCD* lcd, uint8_t x, uint8_t y);
 void lcdClear(LCD* lcd);
 void lcdHome(LCD* lcd);
-uint8_t* lcdReadBsFlagAndAddr(LCD* lcd, uint8_t* bsAndAddr, void (* run)(TwiPackage* package));
+uint8_t lcdReadBsFlagAndAddr(LCD* lcd);
 
 
 uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);

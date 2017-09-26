@@ -28,10 +28,6 @@ void lcdBlink(OsPackage* notUsed){
 	lcdBacklightToggle(&lcd);
 }
 
-void usartSign(OsPackage* notUsed){
-	usartSafeTransmit('a');
-	usartSafeTransmit('\n');
-}
 
 
 void initSystem(OsPackage* package){
@@ -56,7 +52,8 @@ void initSystem(OsPackage* package){
     lcdGoTo(&lcd,0,1);
     lcdSendText(&lcd,PSTR("HURRA Dziala ;)"),sizeof("HURRA Dziala ;)")-1,false);
 
-    addOsPriorFunc(osStaticPriorQueue(),usartSign,NULL,0,false,0xFFFF/2);
+    addOsPriorFunc(osStaticPriorQueue(),lcdBlink,NULL,0,false,0xffff/2);
+
 }
 
 
