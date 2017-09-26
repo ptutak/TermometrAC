@@ -1,5 +1,5 @@
-#ifndef _ADC_H_
-#define _ADC_H_
+#ifndef _AC_ADC_H_
+#define _AC_ADC_H_
 
 
 #include <avr/sleep.h>
