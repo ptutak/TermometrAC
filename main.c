@@ -65,9 +65,9 @@ int main(void){
 
 	while(1){
 
-//    	manageOsDynamicQueue(osDynamicQueue());
-//    	manageOsQueue(osStaticQueue());
-//    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
+    	manageOsDynamicQueue(osDynamicQueue());
+    	manageOsQueue(osStaticQueue());
+    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
     	manageOsPriorQueue(osStaticPriorQueue());
 
     }
