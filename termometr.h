@@ -5,6 +5,7 @@
 
 uint16_t getTemperature(uint16_t referenceValue){
 	uint16_t temp=adcGetStatisticalValue(128);
+
 	temp=temp*referenceValue/1024;
 }
 
