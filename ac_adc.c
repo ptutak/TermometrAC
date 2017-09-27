@@ -1,6 +1,6 @@
 #include "ac_adc.h"
 
-ISR(ADC_vect){}
+
 
 void adcInit(int input,ReferenceType type){
 	switch (input){
@@ -31,18 +31,16 @@ void adcInit(int input,ReferenceType type){
 		ADMUX|=1<<REFS1 | 1<<REFS0;
 		break;
 	}
-	ADCSRA=1<<ADEN | 1<<ADIE | 1<<ADPS2 | 1<<ADPS1 | 1<<ADPS0;
+	ADCSRA=1<<ADEN | 1<<ADPS2 | 1<<ADPS1 | 1<<ADPS0;
 }
+
+//ISR(ADC_vect){};
 
 uint16_t adcGetValue(void) {
 	if (!(ADCSRA&(1<<ADEN)))
 		return 0;
-	set_sleep_mode(SLEEP_MODE_ADC);
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-		sleep_enable();
-	}
-	sleep_cpu();
-	sleep_disable();
+	ADCSRA|=1<<ADSC;
+	while(!(ADCSRA&1<<ADIF));
 	return ADC;
 }
 

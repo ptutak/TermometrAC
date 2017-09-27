@@ -31,17 +31,20 @@ void resendUsartMsg(OsPackage* package){
 
 
 void lcdSetTemperature(OsPackage* lcdPackage){
-	LCD* lcd=(LCD*)lcdPackage->data;
+//	LCD* lcd=(LCD*)lcdPackage->data;
 	int temp=getTemperature(PC1,PC0,1990);
 	char tempLow[5];
 	char tempAll[10];
 	strcat(itoa(temp/10,tempAll,10),itoa(temp%10,tempLow,10));
-	lcdClear(lcd);
-	lcdSendText(lcd,tempAll,sizeof(tempAll)-1,false);
-	twiManageQueue(twiMasterQueue());
+//	lcdClear(lcd);
+	usartSafeTransmit(temp/10);
+	usartSafeTransmit(temp%10);
+	usartSafeTransmit('\n');
+//	usartSendText(tempAll,sizeof(tempAll),false);
 }
 
 void initSystem(OsPackage* package){
+
 
 	usartInit(BAUD);
     addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,1000);
@@ -58,28 +61,25 @@ void initSystem(OsPackage* package){
 
     lcdInit(&lcd);
 
-    usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
+//    usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
     lcdSendText(&lcd,PSTR("Czesc Magda!"),sizeof("Czesc Magda!")-1,false);
     lcdGoTo(&lcd,0,1);
     lcdSendText(&lcd,PSTR("HURRA Dziala ;)"),sizeof("HURRA Dziala ;)")-1,false);
-    twiManageQueue(twiMasterQueue());
-
-    //  addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,(void*)&lcd,sizeof(LCD),false,0xffff/2);
-
-    _delay_ms(3000);
+    addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,NULL,0,false,0xffff/2);
 }
 
 
 
 int main(void){
+
 	addOsFunc(osInitQueue(),initSystem,NULL,0,false);
 
 	manageOsDynamicQueue(osInitQueue());
 
 	while(1){
-    	manageOsDynamicQueue(osDynamicQueue());
-    	manageOsQueue(osStaticQueue());
-    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
+//    	manageOsDynamicQueue(osDynamicQueue());
+//    	manageOsQueue(osStaticQueue());
+//    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
     	manageOsPriorQueue(osStaticPriorQueue());
     }
 

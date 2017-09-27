@@ -193,6 +193,7 @@ void freeTwiPackageData(TwiPackage* package){
 
 
 ISR(TWI_vect){
+	twiBusyFlag=true;
 	TwiPackage* order=NULL;
 	uint8_t twiStatusReg=TWSR & (0b11111000);
 	if (!(TWCR&(1<<TWEN))){
@@ -200,11 +201,9 @@ ISR(TWI_vect){
 		return;
 	}
 	if (twiMasterQueue()->isEmpty){
-		twiClearInt(false);
 		twiBusyFlag=false;
 		return;
 	}
-	twiBusyFlag=true;
 	order=&(twiMasterQueue()->head->package.tPackage);
 	if (order->ttl==0){
 		order->control=TWI_STOP;
@@ -259,8 +258,9 @@ void twiInterrupt(OsPackage* notUsed){
 
 void twiManageQueue(CommQueue* commQueue){
 	while (!commQueue->isEmpty){
-		if (!twiBusyFlag)
+		if (!twiBusyFlag){
 			TWI_vect();
+		}
 	}
 }
 
