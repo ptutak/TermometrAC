@@ -259,7 +259,7 @@ void twiInterrupt(OsPackage* notUsed){
 void twiManageQueue(CommQueue* commQueue){
 	while (!commQueue->isEmpty){
 		if (!twiBusyFlag){
-			TWI_vect();
+            TWI_vect();
 		}
 	}
 }

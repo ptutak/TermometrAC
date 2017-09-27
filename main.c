@@ -29,27 +29,42 @@ void resendUsartMsg(OsPackage* package){
     }
 }
 
+uint8_t myLen(const char* str){
+    uint8_t len=0;
+    while(*str++)
+        len++;
+    return len;
+}
+
 
 void lcdSetTemperature(OsPackage* lcdPackage){
-//	LCD* lcd=(LCD*)lcdPackage->data;
-	int temp=getTemperature(PC1,PC0,1990);
-	char* tempLow=malloc(5);
-	char* tempAll=malloc(10);
-	tempAll=itoa(temp/10,tempAll,10);
-	tempLow=itoa(temp%10,tempLow,10);
-
+	static char tempLow[5];
+	static char tempAll[10];
+    for (uint8_t i=0;i<5;++i)
+        tempLow[i]=0;
+    for (uint8_t i=0;i<10;++i)
+        tempAll[i]=0;
+    int temp=getTemperature(PC1,PC0,1970);
+	itoa(temp/10,tempAll,10);
+	itoa(temp%10,tempLow,10);
+    strcat(tempAll,",");
 	strcat(tempAll,tempLow);
-	strcat(tempAll,"\n");
-
-//	lcdClear(lcd);
+   	strcat(tempAll,"\n");
+    usartSafeTransmit(tempAll[0]);
+    usartSafeTransmit('\n'); 
 	usartSendText(tempAll,strlen(tempAll),false);
+ /*   lcdClear(&lcd);
+    lcdGoTo(&lcd,0,0);
+    lcdSendText(&lcd,tempAll,strlen(tempAll),true);
+    */
+    twiManageQueue(twiMasterQueue());
 }
 
 void initSystem(OsPackage* package){
 
 
 	usartInit(BAUD);
-    addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,1000);
+ //   addOsPriorFunc(osStaticPriorQueue(),resendUsartMsg,NULL,0,false,1000);
 
     twiInit(TWI_FREQ,true);
 	addOsPriorFunc(osStaticPriorQueue(),twiInterrupt,NULL,0,false,1000);
@@ -63,12 +78,12 @@ void initSystem(OsPackage* package){
 
     lcdInit(&lcd);
 
-//    usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
+    usartSendText(PSTR("System init\n"),sizeof("System init\n")-1,false);
     lcdSendText(&lcd,PSTR("Czesc Magda!"),sizeof("Czesc Magda!")-1,false);
     lcdGoTo(&lcd,0,1);
     lcdSendText(&lcd,PSTR("HURRA Dziala ;)"),sizeof("HURRA Dziala ;)")-1,false);
     twiManageQueue(twiMasterQueue());
-    addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,NULL,0,false,0xffff/2);
+    addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,NULL,0,false,0xffff/4);
 }
 
 
@@ -80,9 +95,9 @@ int main(void){
 	manageOsDynamicQueue(osInitQueue());
 
 	while(1){
-//    	manageOsDynamicQueue(osDynamicQueue());
-//    	manageOsQueue(osStaticQueue());
-//    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
+    	manageOsDynamicQueue(osDynamicQueue());
+    	manageOsQueue(osStaticQueue());
+    	manageOsDynamicPriorQueue(osDynamicPriorQueue());
     	manageOsPriorQueue(osStaticPriorQueue());
     }
 
