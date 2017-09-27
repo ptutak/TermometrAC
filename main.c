@@ -5,9 +5,16 @@
 #include "lcd_control.h"
 #include "string.h"
 #include "util/delay.h"
+#include "termometr.h"
+#include "stdlib.h"
 
 
 static const uint16_t BAUD=9600;
+
+LCD lcd;
+
+
+
 
 void resendUsartMsg(OsPackage* package){
     static const char* received;
@@ -22,13 +29,17 @@ void resendUsartMsg(OsPackage* package){
     }
 }
 
-LCD lcd;
 
-void lcdBlink(OsPackage* notUsed){
-	lcdBacklightToggle(&lcd);
+void lcdSetTemperature(OsPackage* lcdPackage){
+	LCD* lcd=(LCD*)lcdPackage->data;
+	int temp=getTemperature(PC1,PC0,1990);
+	char tempLow[5];
+	char tempAll[10];
+	strcat(itoa(temp/10,tempAll,10),itoa(temp%10,tempLow,10));
+	lcdClear(lcd);
+	lcdSendText(lcd,tempAll,sizeof(tempAll)-1,false);
+	twiManageQueue(twiMasterQueue());
 }
-
-
 
 void initSystem(OsPackage* package){
 
@@ -51,9 +62,11 @@ void initSystem(OsPackage* package){
     lcdSendText(&lcd,PSTR("Czesc Magda!"),sizeof("Czesc Magda!")-1,false);
     lcdGoTo(&lcd,0,1);
     lcdSendText(&lcd,PSTR("HURRA Dziala ;)"),sizeof("HURRA Dziala ;)")-1,false);
+    twiManageQueue(twiMasterQueue());
 
-    addOsPriorFunc(osStaticPriorQueue(),lcdBlink,NULL,0,false,0xffff/2);
+    //  addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,(void*)&lcd,sizeof(LCD),false,0xffff/2);
 
+    _delay_ms(3000);
 }
 
 
@@ -64,12 +77,10 @@ int main(void){
 	manageOsDynamicQueue(osInitQueue());
 
 	while(1){
-
     	manageOsDynamicQueue(osDynamicQueue());
     	manageOsQueue(osStaticQueue());
     	manageOsDynamicPriorQueue(osDynamicPriorQueue());
     	manageOsPriorQueue(osStaticPriorQueue());
-
     }
 
 }
