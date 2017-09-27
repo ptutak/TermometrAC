@@ -33,12 +33,12 @@ void resendUsartMsg(OsPackage* package){
 void lcdSetTemperature(OsPackage* lcdPackage){
 //	LCD* lcd=(LCD*)lcdPackage->data;
 	int temp=getTemperature(PC1,PC0,1990);
-	char tempLow[5];
-	char tempAll[10];
-	strcat(itoa(temp/10,tempAll,10),itoa(temp%10,tempLow,10));
+//	char tempLow[5];
+//	char tempAll[10];
+//	strcat(itoa(temp/10,tempAll,10),itoa(temp%10,tempLow,10));
 //	lcdClear(lcd);
-	usartSafeTransmit(temp/10);
-	usartSafeTransmit(temp%10);
+	usartSafeTransmit(temp);
+	usartSafeTransmit(temp);
 	usartSafeTransmit('\n');
 //	usartSendText(tempAll,sizeof(tempAll),false);
 }
@@ -65,6 +65,7 @@ void initSystem(OsPackage* package){
     lcdSendText(&lcd,PSTR("Czesc Magda!"),sizeof("Czesc Magda!")-1,false);
     lcdGoTo(&lcd,0,1);
     lcdSendText(&lcd,PSTR("HURRA Dziala ;)"),sizeof("HURRA Dziala ;)")-1,false);
+    twiManageQueue(twiMasterQueue());
     addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,NULL,0,false,0xffff/2);
 }
 

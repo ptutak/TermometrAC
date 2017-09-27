@@ -5,7 +5,7 @@
 const uint32_t TWI_FREQ=100000;
 const uint8_t TWI_STD_TTL=20;
 
-static bool twiBusyFlag=false;
+volatile static bool twiBusyFlag=false;
 
 bool twiReady(){
 	return !twiBusyFlag;

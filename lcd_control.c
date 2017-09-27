@@ -34,8 +34,14 @@ static inline uint32_t packageEnableSplit(uint8_t instruction,uint8_t data, uint
 	return ((uint32_t)((uint8_t)enData)) | (((uint32_t)((uint8_t)origData))<<8) | (((uint32_t)(enData & 0xFF00))<<8) | (((uint32_t)(origData & 0xFF00))<<16);
 }
 
+void freeTwi2Delay(TwiPackage* package){
+	free((uint8_t*)package->data);
+	_delay_ms(2);
+}
 
-
+void twi10Delay(TwiPackage* package){
+	_delay_ms(10);
+}
 
 void lcdInit(LCD* lcd){
 	if (lcd->configInitArraySize==0)
@@ -45,36 +51,29 @@ void lcdInit(LCD* lcd){
 	data[0]=(uint8_t)(*lcd->sendSplit)(LCD_COMMAND | lcd->backlight | ENABLE, LCD_F_SET_8_BIT_2_LINE_8_FONT);
 	data[1]=(uint8_t)(*lcd->sendSplit)(LCD_COMMAND | lcd->backlight, LCD_F_SET_8_BIT_2_LINE_8_FONT);
 
-	twiSendMasterData(data,2,lcd->address,NULL);
-	twiInterrupt(NULL);
-	_delay_ms(5);
-	twiSendMasterData(data,2,lcd->address,NULL);
-	twiInterrupt(NULL);
-	_delay_ms(5);
-	twiSendMasterData(data,2,lcd->address,NULL);
-	twiInterrupt(NULL);
-	_delay_ms(5);
+	twiSendMasterData(data,2,lcd->address,twi10Delay);
+	twiSendMasterData(data,2,lcd->address,twi10Delay);
+	twiSendMasterData(data,2,lcd->address,twi10Delay);
 
 	data[0]=(uint8_t)(*lcd->sendSplit)(LCD_COMMAND | lcd->backlight | ENABLE, lcd->configInitArray[0]);
 	data[1]=(uint8_t)(*lcd->sendSplit)(LCD_COMMAND | lcd->backlight, lcd->configInitArray[0]);
-	twiSendMasterData(data,2,lcd->address,freeTwiPackageData);
-	twiInterrupt(NULL);
+	twiSendMasterData(data,2,lcd->address,freeTwi2Delay);
+
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		for (int i=0;i<lcd->configInitArraySize;i++){
 			data=malloc(4);
 			*((uint32_t*)data)=packageEnableSplit(LCD_COMMAND | lcd->backlight ,lcd->configInitArray[i],lcd->sendSplit);
-			twiSendMasterData(data,4,lcd->address,freeTwiPackageData);
+			twiSendMasterData(data,4,lcd->address,freeTwi2Delay);
 		}
 	}
-	twiInterrupt(NULL);
+	twiManageQueue(twiMasterQueue());
 }
 
 void lcdGoTo(LCD* lcd, uint8_t x, uint8_t y){
 	uint8_t* data=malloc(4);
 	*((uint32_t*)data)=packageEnableSplit(LCD_COMMAND | lcd->backlight,(x+0x40*y)|LCD_GO_TO_DDR_ADDR,lcd->sendSplit);
 	twiSendMasterData(data,4,lcd->address,freeTwiPackageData);
-	twiInterrupt(NULL);
 }
 
 void lcdSendText(LCD* lcd,const __memx char* tekst,uint8_t size,bool dynamic){
@@ -111,14 +110,11 @@ void lcdClear(LCD* lcd){
 	twiSendMasterData(data,4,lcd->address,freeTwiPackageData);
 }
 
-void returnHomeDelay(TwiPackage* package){
-	free((uint8_t*)package->data);
-	_delay_ms(2);
-}
+
 
 void lcdHome(LCD* lcd){
 	uint8_t* data=malloc(4);
 	*((uint32_t*)data)=packageEnableSplit(LCD_COMMAND | lcd->backlight,LCD_RETURN_HOME,lcd->sendSplit);
-	twiSendMasterData(data,4,lcd->address,returnHomeDelay);
+	twiSendMasterData(data,4,lcd->address,freeTwi2Delay);
 }
 
