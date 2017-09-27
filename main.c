@@ -33,14 +33,16 @@ void resendUsartMsg(OsPackage* package){
 void lcdSetTemperature(OsPackage* lcdPackage){
 //	LCD* lcd=(LCD*)lcdPackage->data;
 	int temp=getTemperature(PC1,PC0,1990);
-//	char tempLow[5];
-//	char tempAll[10];
-//	strcat(itoa(temp/10,tempAll,10),itoa(temp%10,tempLow,10));
+	char* tempLow=malloc(5);
+	char* tempAll=malloc(10);
+	tempAll=itoa(temp/10,tempAll,10);
+	tempLow=itoa(temp%10,tempLow,10);
+
+	strcat(tempAll,tempLow);
+	strcat(tempAll,"\n");
+
 //	lcdClear(lcd);
-	usartSafeTransmit(temp);
-	usartSafeTransmit(temp);
-	usartSafeTransmit('\n');
-//	usartSendText(tempAll,sizeof(tempAll),false);
+	usartSendText(tempAll,strlen(tempAll),false);
 }
 
 void initSystem(OsPackage* package){

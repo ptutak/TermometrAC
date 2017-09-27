@@ -6,19 +6,19 @@ void adcInit(int input,ReferenceType type){
 	switch (input){
 	case PC0:
 		ADMUX=0;
-//		DIDR0=~(1<<PC0);
+		DIDR0=~(1<<PC0);
 		break;
 	case PC1:
 		ADMUX=1<<MUX0;
-//		DIDR0=~(1<<PC1);
+		DIDR0=~(1<<PC1);
 		break;
 	case PC2:
 		ADMUX=1<<MUX1;
-//		DIDR0=~(1<<PC2);
+		DIDR0=~(1<<PC2);
 		break;
 	case PC3:
 		ADMUX=1<<MUX1|1<<MUX0;
-//		DIDR0=~(1<<PC3);
+		DIDR0=~(1<<PC3);
 		break;
 	}
 	switch(type){
