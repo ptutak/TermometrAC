@@ -22,5 +22,8 @@ UsartPackage usartGetData(void);
 
 void usartInit(uint16_t baud);
 
+void usartSendInterrupt(OsPackage* notUsed);
+void usartManageToSendQueue(OsPackage* notUsed);
+
 
 #endif /*__FILE____COUNTER__*/

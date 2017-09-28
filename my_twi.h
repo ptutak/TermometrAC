@@ -11,20 +11,20 @@
 extern const uint32_t TWI_FREQ;
 extern const uint8_t TWI_STD_TTL;
 
-bool twiReady(void);
-
-void twiInit(uint32_t freq,bool twea);
-
 CommQueue* twiMasterQueue(void);
 
 
-void twiSendMasterData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
+bool twiReady(void);
 
+
+void twiInit(uint32_t freq,bool twea);
+void twiSendMasterData(const __memx uint8_t* data, uint8_t size,uint8_t address, void (*callFunc)(TwiPackage* self));
 void twiReadMasterData(uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self));
 
 
 void twiInterrupt(OsPackage* notUsed);
 void twiManageQueue(CommQueue* commQueue);
+void twiManageMasterQueue(OsPackage* notUsed);
 
 void twiOff(void);
 

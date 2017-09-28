@@ -11,3 +11,6 @@ int getTemperature(int pinPlus, int pinMinus, uint16_t referenceVoltage){
     return (int)(((long)(tempPlus-tempMinus)*referenceVoltage)/1024);
 }
 
+uint16_t getReferenceVoltage(int pinPlus){
+	return 0;
+}

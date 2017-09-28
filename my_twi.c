@@ -65,11 +65,10 @@ static inline uint8_t twiDataReceive(bool twea){
 static inline void twiStop(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO|twea<<TWEA;
 }
+/*
 static inline void twiClearInt(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
 }
-
-/*
 static inline void twiAck(){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWEA;
 }
@@ -262,6 +261,10 @@ void twiManageQueue(CommQueue* commQueue){
             TWI_vect();
 		}
 	}
+}
+
+void twiManageMasterQueue(OsPackage* package){
+	twiManageQueue(twiMasterQueue());
 }
 
 void twiOff(){

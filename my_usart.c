@@ -35,46 +35,35 @@ CommQueue* usartReceivedQueue(void){
 	return &usartReceivedQueue;
 }
 
+static volatile bool CompletedSendTransmission=true;
 
-ISR(USART_TX_vect,ISR_NOBLOCK){
-	static bool busy=false;
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		if (busy)
-			return;
-		busy=true;
-	}
-	static bool completedTransmission=true;
+ISR(USART_TX_vect){
 	static uint16_t marker=0;
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		if (!usartToSendQueue()->isEmpty){
-			UsartPackage toSend=usartToSendQueue()->head->package.uPackage;
-			if (!completedTransmission){
-				marker++;
-				if (marker==toSend.size){
-					 completedTransmission=true;
-					 toSend=(dequeue(usartToSendQueue())).uPackage;
-					 if (toSend.dynamic)
-						free((uint8_t*)toSend.data);
-				 }
-				 else
-				   usartTransmit(*(toSend.data+marker));
-			}
+	if (!usartToSendQueue()->isEmpty){
+		UsartPackage toSend=usartToSendQueue()->head->package.uPackage;
+		if (!CompletedSendTransmission){
+			marker++;
+			if (marker==toSend.size){
+				 CompletedSendTransmission=true;
+				 toSend=(dequeue(usartToSendQueue())).uPackage;
+				 if (toSend.dynamic)
+					free((uint8_t*)toSend.data);
+			 }
+			 else
+			   usartTransmit(*(toSend.data+marker));
+		}
+		else{
+			CompletedSendTransmission=false;
+			marker=0;
+			if (toSend.size>0)
+				usartTransmit(*toSend.data);
 			else{
-				completedTransmission=false;
-				marker=0;
-				if (toSend.size>0)
-					usartTransmit(*toSend.data);
-				else{
-					toSend=(dequeue(usartToSendQueue())).uPackage;
-					if (toSend.dynamic)
-						free((uint8_t*)toSend.data);
-				}
+				toSend=(dequeue(usartToSendQueue())).uPackage;
+				if (toSend.dynamic)
+					free((uint8_t*)toSend.data);
 			}
 		}
-		busy=false;
 	}
-	if (completedTransmission && (!usartToSendQueue()->isEmpty))
-		USART_TX_vect();
 }
 
 ISR(USART_RX_vect){
@@ -101,14 +90,17 @@ ISR(USART_RX_vect){
 	}
 }
 
+void usartSendInterrupt(OsPackage* notUsed){
+	if (!usartToSendQueue()->isEmpty && CompletedSendTransmission)
+		USART_TX_vect();
+}
+
 void usartSendText(const __memx char* text, uint8_t size, bool dynamic){
 	queue(usartToSendQueue(),&(Package){.uPackage={(const __memx uint8_t*)text,size,dynamic}});
-	USART_TX_vect();
 }
 
 void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic){
 	queue(usartToSendQueue(),&(Package){.uPackage={data,size,dynamic}});
-	USART_TX_vect();
 }
 
 const char* usartGetText(){
@@ -117,6 +109,14 @@ const char* usartGetText(){
 
 UsartPackage usartGetData(void){
 	return dequeue(usartReceivedQueue()).uPackage;
+}
+
+void usartManageToSendQueue(OsPackage* notUsed){
+	while(!usartToSendQueue()->isEmpty){
+		if (CompletedSendTransmission){
+			USART_TX_vect();
+		}
+	}
 }
 
 void usartInit(uint16_t baud){
