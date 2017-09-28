@@ -22,9 +22,9 @@ int getTemperature(int pinPlus, int pinMinus, uint16_t referenceVoltage){
 	uint16_t tempPlus,tempMinus;
 
 	adcInit(pinPlus,AREF);
-	tempPlus=(int)adcGetStatisticalValue(128);
+	tempPlus=(int)adcGetStatisticalValue(20);
 	adcInit(pinMinus,AREF);
-	tempMinus=(int)adcGetStatisticalValue(128);
+	tempMinus=(int)adcGetStatisticalValue(20);
     return (int)(((long)(tempPlus-tempMinus)*referenceVoltage)/1024);
 }
 
