@@ -20,6 +20,15 @@ Copyright 2017 Piotr Tutak
 
 
 
+uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data){
+	return ((uint16_t)(instructionType|(data & 0xF0)))|(((uint16_t)(instructionType|(data<<4)))<<8);
+}
+
+uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low){
+	return (high & 0xF0)|((low & 0xF0)>>4);
+}
+
+
 
 LCDCommand LCD_CONFIG_INIT_2X16S[]={
 		LCD_F_SET_4_BIT_2_LINE_8_FONT,
@@ -29,18 +38,6 @@ LCDCommand LCD_CONFIG_INIT_2X16S[]={
 };
 
 uint8_t LCD_CONFIG_INIT_2X16S_SIZE=sizeof(LCD_CONFIG_INIT_2X16S)/sizeof(LCDCommand);
-
-
-
-
-
-uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data){
-	return ((uint16_t)(instructionType|(data & 0xF0)))|(((uint16_t)(instructionType|(data<<4)))<<8);
-}
-
-uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low){
-	return (high & 0xF0)|((low & 0xF0)>>4);
-}
 
 
 

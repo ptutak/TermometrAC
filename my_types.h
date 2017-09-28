@@ -18,13 +18,9 @@ Copyright 2017 Piotr Tutak
 #ifndef _MY_TYPES_H_
 #define _MY_TYPES_H_ 1
 
-#include <avr/io.h>
-#include <util/delay.h>
-#include <util/atomic.h>
-#include <avr/interrupt.h>
-#include <avr/pgmspace.h>
-#include <stdbool.h>
 #include <stdlib.h>
+#include <avr/io.h>
+#include <stdbool.h>
 
 
 typedef struct {

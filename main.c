@@ -14,16 +14,19 @@ Copyright 2017 Piotr Tutak
    limitations under the License.
 */
 
+#include <avr/io.h>
+#include <avr/pgmspace.h>
+#include <util/delay.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "my_types.h"
 #include "my_queue.h"
 #include "my_twi.h"
 #include "my_usart.h"
 #include "lcd_control.h"
-#include "string.h"
-#include "util/delay.h"
 #include "termometr.h"
-#include "stdlib.h"
+#include "os.h"
 
 
 static const uint16_t BAUD=9600;
@@ -98,7 +101,7 @@ void initSystem(OsPackage* package){
     lcdInit(&lcd);
 
 
-    usartSendText(PSTR("Termometr!\n"),sizeof("Termometr!\n")-1,false);
+
     usartSendText(PSTR("Copyright PT\n"),sizeof("Copyright PT\n")-1,false);
     usartManageToSendQueue(NULL);
 

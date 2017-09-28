@@ -39,9 +39,6 @@ void queue(CommQueue* queue, Package* package){
 	}
 }
 
-
-
-
 Package dequeue(CommQueue* queue){
     if (queue==NULL || queue->head==NULL)
     	return NULL_PACKAGE;

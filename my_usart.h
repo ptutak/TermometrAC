@@ -43,4 +43,4 @@ void usartSendInterrupt(OsPackage* notUsed);
 void usartManageToSendQueue(OsPackage* notUsed);
 
 
-#endif /*__FILE____COUNTER__*/
+#endif

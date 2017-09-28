@@ -82,6 +82,8 @@ static inline uint8_t twiDataReceive(bool twea){
 static inline void twiStop(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|1<<TWSTO|twea<<TWEA;
 }
+
+
 /*
 static inline void twiClearInt(bool twea){
 	TWCR=1<<TWEN|1<<TWINT|1<<TWIE|twea<<TWEA;
@@ -267,6 +269,12 @@ ISR(TWI_vect){
 }
 
 
+void twiOff(){
+	TWBR=0;
+	TWSR=0;
+	TWCR=0;
+}
+
 void twiInterrupt(OsPackage* notUsed){
 	if (!twiMasterQueue()->isEmpty && !twiBusyFlag)
 		TWI_vect();
@@ -282,12 +290,6 @@ void twiManageQueue(CommQueue* commQueue){
 
 void twiManageMasterQueue(OsPackage* package){
 	twiManageQueue(twiMasterQueue());
-}
-
-void twiOff(){
-	TWBR=0;
-	TWSR=0;
-	TWCR=0;
 }
 
 void twiSendMasterData(const __memx uint8_t* data, uint8_t size, uint8_t address, void (*callFunc)(TwiPackage* self)){

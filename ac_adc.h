@@ -22,7 +22,6 @@ Copyright 2017 Piotr Tutak
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
-#include "my_usart.h"
 
 
 typedef enum{

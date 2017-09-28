@@ -19,10 +19,17 @@ Copyright 2017 Piotr Tutak
 
 #include "my_types.h"
 #include "my_twi.h"
-#include "os.h"
+#include <util/delay.h>
+#include <util/atomic.h>
+#include <stdlib.h>
+
+
 
 //byte structure: 0b d7,d6,d5,d4,bt,e,rw,rs
 //byte structure: 0b d3,d2,d1,d0,bt,e,rw,rs
+uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);
+uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low);
+
 
 //byte structure:0b 0,0,0,0,bt,e,rw,rs
 typedef enum{
@@ -34,6 +41,7 @@ typedef enum{
 	BACKLIGHT_ON=0x08,
 	BACKLIGHT_OFF=0x00,
 }LCDInstructionType;
+
 
 //byte structure 0b d7,d6,d5,d4,d3,d2,d1,d0
 typedef enum{
@@ -73,6 +81,9 @@ typedef enum{
 
 }LCDCommand;
 
+extern LCDCommand LCD_CONFIG_INIT_2X16S[];
+extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
+
 
 
 typedef struct{
@@ -86,9 +97,6 @@ typedef struct{
 
 
 
-extern LCDCommand LCD_CONFIG_INIT_2X16S[];
-extern uint8_t LCD_CONFIG_INIT_2X16S_SIZE;
-
 
 void lcdInit(LCD* lcd);
 void lcdSendText(LCD* lcd, const __memx char* tekst, uint8_t size, bool dynamic);
@@ -97,11 +105,6 @@ void lcdGoTo(LCD* lcd, uint8_t x, uint8_t y);
 void lcdClear(LCD* lcd);
 void lcdHome(LCD* lcd);
 uint8_t lcdReadBsFlagAndAddr(LCD* lcd);
-
-
-uint16_t splitDataPCF8574_DataHigh(uint8_t instructionType, uint8_t data);
-uint8_t receivedDataPCF8574_DataHigh(uint8_t high, uint8_t low);
-
 
 
 #endif

@@ -18,21 +18,23 @@ Copyright 2017 Piotr Tutak
 #ifndef _MY_QUEUE_H_
 #define _MY_QUEUE_H_ 1
 
+#include <stdlib.h>
+#include <util/atomic.h>
 #include "my_types.h"
 
+
 void queue(CommQueue* queue, Package* package);
+void insert(CommQueue* queue, Package* package, uint8_t index);
 
 Package dequeue(CommQueue* queue);
+Package remove(CommQueue* queue, uint8_t index);
+
 
 void queuePrior(PriorityQueue* queue, Package* package, uint16_t priority);
 
 Package dequeuePrior(PriorityQueue* queue);
-
 Package removePrior(PriorityQueue* queue, uint16_t priority);
 
-void insert(CommQueue* queue, Package* package, uint8_t index);
-
-Package remove(CommQueue* queue, uint8_t index);
 
 
 #endif
