@@ -24,7 +24,7 @@ Copyright 2017 Piotr Tutak
 #include "queue.h"
 #include "twi.h"
 #include "usart.h"
-#include "lcd_control.h"
+#include "lcd.h"
 #include "termometr.h"
 #include "os.h"
 

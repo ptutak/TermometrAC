@@ -14,8 +14,8 @@ Copyright 2017 Piotr Tutak
    limitations under the License.
 */
 
-#ifndef _LCD_CONTROL_H_
-#define _LCD_CONTROL_H_
+#ifndef _LCD_H_
+#define _LCD_H_
 
 #include "types.h"
 #include "twi.h"

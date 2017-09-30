@@ -16,7 +16,7 @@ Copyright 2017 Piotr Tutak
 
 
 
-#include "lcd_control.h"
+#include "lcd.h"
 
 
 
