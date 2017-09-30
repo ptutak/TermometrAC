@@ -15,10 +15,32 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#include "my_types.h"
+#ifndef _USART_H_
+#define _USART_H_ 1
 
-const Package NULL_PACKAGE={.tPackage={NULL,0,0,'\0',0,0,TWI_NULL,NULL}};
+#include "types.h"
+#include "queue.h"
 
-const TwiPackage NULL_TWI_PACKAGE={NULL,0,0,'\0',0,0,TWI_NULL,NULL};
+
+CommQueue* usartToSendQueue(void);
+CommQueue* usartReceivedQueue(void);
 
 
+void usartSafeTransmit(uint8_t data);
+
+
+void usartSendText(const __memx char* text, uint8_t size, bool dynamic);
+void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic);
+
+
+const char* usartGetText();
+UsartPackage usartGetData(void);
+
+
+void usartInit(uint16_t baud);
+
+void usartSendInterrupt(OsPackage* notUsed);
+void usartManageToSendQueue(OsPackage* notUsed);
+
+
+#endif

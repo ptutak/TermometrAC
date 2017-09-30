@@ -18,8 +18,8 @@ Copyright 2017 Piotr Tutak
 #ifndef _OS_H_
 #define _OS_H_
 
-#include "my_types.h"
-#include "my_queue.h"
+#include "types.h"
+#include "queue.h"
 
 CommQueue* osInitQueue(void);
 

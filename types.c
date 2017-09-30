@@ -15,26 +15,10 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#ifndef _MY_QUEUE_H_
-#define _MY_QUEUE_H_ 1
+#include "types.h"
 
-#include <stdlib.h>
-#include <util/atomic.h>
-#include "my_types.h"
+const Package NULL_PACKAGE={.tPackage={NULL,0,0,'\0',0,0,TWI_NULL,NULL}};
 
-
-void queue(CommQueue* queue, Package* package);
-void insert(CommQueue* queue, Package* package, uint8_t index);
-
-Package dequeue(CommQueue* queue);
-Package remove(CommQueue* queue, uint8_t index);
+const TwiPackage NULL_TWI_PACKAGE={NULL,0,0,'\0',0,0,TWI_NULL,NULL};
 
 
-void queuePrior(PriorityQueue* queue, Package* package, uint16_t priority);
-
-Package dequeuePrior(PriorityQueue* queue);
-Package removePrior(PriorityQueue* queue, uint16_t priority);
-
-
-
-#endif

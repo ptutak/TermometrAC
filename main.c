@@ -20,10 +20,10 @@ Copyright 2017 Piotr Tutak
 #include <string.h>
 #include <stdlib.h>
 
-#include "my_types.h"
-#include "my_queue.h"
-#include "my_twi.h"
-#include "my_usart.h"
+#include "types.h"
+#include "queue.h"
+#include "twi.h"
+#include "usart.h"
 #include "lcd_control.h"
 #include "termometr.h"
 #include "os.h"
@@ -102,12 +102,12 @@ void initSystem(OsPackage* package){
 
 
 
-    usartSendText(PSTR("Copyright PT\n"),sizeof("Copyright PT\n")-1,false);
+    usartSendText(PSTR("Copyright PT\n"),strlen("Copyright PT\n"),false);
     usartManageToSendQueue(NULL);
 
-    lcdSendText(&lcd,PSTR("Termometr!"),sizeof("Termometr!")-1,false);
+    lcdSendText(&lcd,PSTR("Termometr!"),strlen("Termometr!"),false);
     lcdGoTo(&lcd,0,1);
-    lcdSendText(&lcd,PSTR("Copyright PT"),sizeof("Copyright PT")-1,false);
+    lcdSendText(&lcd,PSTR("Copyright PT"),strlen("Copyright PT"),false);
     twiManageMasterQueue(NULL);
 
     addOsPriorFunc(osStaticPriorQueue(),lcdSetTemperature,NULL,0,false,0xffff/4);

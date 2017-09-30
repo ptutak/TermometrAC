@@ -17,8 +17,8 @@ Copyright 2017 Piotr Tutak
 #ifndef _LCD_CONTROL_H_
 #define _LCD_CONTROL_H_
 
-#include "my_types.h"
-#include "my_twi.h"
+#include "types.h"
+#include "twi.h"
 #include <util/delay.h>
 #include <util/atomic.h>
 #include <stdlib.h>

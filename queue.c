@@ -15,7 +15,7 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#include "my_queue.h"
+#include "queue.h"
 
 
 

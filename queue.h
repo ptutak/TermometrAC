@@ -15,32 +15,26 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#ifndef _MY_USART_H_
-#define _MY_USART_H_ 1
+#ifndef _QUEUE_H_
+#define _QUEUE_H_ 1
 
-#include "my_types.h"
-#include "my_queue.h"
-
-
-CommQueue* usartToSendQueue(void);
-CommQueue* usartReceivedQueue(void);
+#include <stdlib.h>
+#include <util/atomic.h>
+#include "types.h"
 
 
-void usartSafeTransmit(uint8_t data);
+void queue(CommQueue* queue, Package* package);
+void insert(CommQueue* queue, Package* package, uint8_t index);
+
+Package dequeue(CommQueue* queue);
+Package remove(CommQueue* queue, uint8_t index);
 
 
-void usartSendText(const __memx char* text, uint8_t size, bool dynamic);
-void usartSendData(const __memx uint8_t* data, uint8_t size, bool dynamic);
+void queuePrior(PriorityQueue* queue, Package* package, uint16_t priority);
 
+Package dequeuePrior(PriorityQueue* queue);
+Package removePrior(PriorityQueue* queue, uint16_t priority);
 
-const char* usartGetText();
-UsartPackage usartGetData(void);
-
-
-void usartInit(uint16_t baud);
-
-void usartSendInterrupt(OsPackage* notUsed);
-void usartManageToSendQueue(OsPackage* notUsed);
 
 
 #endif

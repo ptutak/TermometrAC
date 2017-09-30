@@ -15,11 +15,11 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#ifndef _MY_TWI_H_
-#define _MY_TWI_H_
+#ifndef _TWI_H_
+#define _TWI_H_
 
-#include "my_types.h"
-#include "my_queue.h"
+#include "types.h"
+#include "queue.h"
 
 
 

@@ -15,7 +15,7 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#include "my_usart.h"
+#include "usart.h"
 
 static inline void usartTransmit(uint8_t data) {
 	while (!(UCSR0A & (1<<UDRE0)));

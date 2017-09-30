@@ -15,8 +15,8 @@ Copyright 2017 Piotr Tutak
 */
 
 
-#ifndef _MY_TYPES_H_
-#define _MY_TYPES_H_ 1
+#ifndef _TYPES_H_
+#define _TYPES_H_ 1
 
 #include <stdlib.h>
 #include <avr/io.h>
